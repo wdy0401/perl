@@ -1,4 +1,7 @@
 #!/usr/bin/perl -w 
+
+#输出设定仓位与设定时间，最后设定的排在最前 用开始的button就行  上面显示每个合约的目标仓位 双击之后变蓝 双击前是绿色 更新之后重新变为绿色
+
 use FindBin qw($Bin);
 use Getopt::Long;
 use File::Path;
@@ -8,13 +11,39 @@ use lib "c:/code";
 use WMATH;
 
 my $ctr="cu1601";
+my $date=20151223;
 GetOptions(
 	"ctr=s" =>\$ctr,
 ); 
 
-&load_lon();
-&load_dkx();
+my %bar;
+my %dkxb;
+my %lonb;
+my $barcount=1;
+&load_cta1();
 &run();
+
+sub load_cta1(@)
+{
+	my $file="c:/report/$date/cta1.txt";
+	open(IN,"$file") or die "Cannot open CTA1 file $file\n";
+	while(<IN>)
+	{
+		s/\s+$//;
+		next unless $_;
+		my($t,$o,$h,$l,$c,$v,$i,$lon,$dkx)=(split/,/);
+		$bar{$barcount}{'t'}=$t;
+		$bar{$barcount}{'o'}=$o;
+		$bar{$barcount}{'h'}=$h;
+		$bar{$barcount}{'l'}=$l;
+		$bar{$barcount}{'c'}=$c;
+		$bar{$barcount}{'i'}=$i;
+		$bar{$barcount}{'v'}=$v;
+		$bar{$barcount}{'lon'}=$lon;
+		$bar{$barcount}{'dkx'}=$dkx;
+		$barcount++;
+	}
+}
 sub run()
 {
 #	open(IN,"./receiver/test_receiver.exe |");
@@ -41,8 +70,23 @@ sub run()
 		# os<< "," << pDepthMarketData->AveragePrice;
 		# os<< "," << pDepthMarketData->PreSettlementPrice;
 		next unless /^201/;
+		#有待更新  因ctp_record更新之缘故
 		my($d,$t,$lt,$ctr,$bp,$ap,$bv,$av,$lp,$h,$l,$interest)=(split/,/);
-		next unless $ctr=~/if1601/i;
+		next unless &match_ctr($ctr);
+		next unless &match_time($t,$lt);
+		if(&new_bar($t,$lt))
+		{
+			&check_pos();
+			$barcount++;
+		}
+		$bar{$barcount}{'t'}//=$t;
+		$bar{$barcount}{'o'}//=$lp;
+		$bar{$barcount}{'h'}//=$lp;$bar{$barcount}{'h'}=$lp>$bar{$barcount}{'h'}?$lp:$bar{$barcount}{'h'};
+		$bar{$barcount}{'l'}//=$lp;$bar{$barcount}{'l'}=$lp<$bar{$barcount}{'l'}?$lp:$bar{$barcount}{'l'};
+		$bar{$barcount}{'c'}=$lp;
+		$bar{$barcount}{'i'}//=$interest;#有待检查
+		#$bar{$barcount}{'v'}//=$v;#有待检查
+	
 		
 		print "$interest\n";
 		#print STDERR "$_\n";
@@ -52,7 +96,27 @@ sub display(@)
 {
 	my($a)=@_;
 }
+sub match_ctr(@)
+{
+	my $ctr=shift  @_;
+	return 0 unless $ctr=~/if1601/i;
+	return 1;
+}
+sub match_time(@)
+{
+	return 1;
+}
+sub new_bar(@)
+{
+	return 1;
+}
+sub check_pos(@)
+{
+	return 1;
+}
 
-sub load_lon(@){my($a)=@_;}
-sub load_dkx(@){my($a)=@_;}
-#输出设定仓位与设定时间，最后设定的排在最前 用开始的button就行  上面显示每个合约的目标仓位 双击之后变蓝 双击前是绿色 更新之后重新变为绿色
+
+
+
+
+
