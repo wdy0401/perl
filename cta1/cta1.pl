@@ -5,7 +5,7 @@
 use FindBin qw($Bin);
 use Getopt::Long;
 use File::Path;
-use 5.010;
+use 5.22.0;
 
 use lib "c:/code";
 use WMATH;
@@ -46,15 +46,16 @@ sub load_cta1(@)
 }
 sub run()
 {
-#	open(IN,"./receiver/test_receiver.exe |");
+
 	open(IN,"E:/receiver/20151228.txt");
+
+	my $lastoi=0;
+	my $lastap=0;
+	my $lastv=0;
+	my $lastto=0;
 	while(<IN>)
 	{	
-		# 20151223,21:30:58:0,21:30:55:379,MA605,1710,1711,476,1248,1710,1717,1705,758718996,1711,1692
-		# 20151223,21:30:58:0,21:30:55:386,MA609,1729,1730,2,86,1729,1739,1727,12113608,1732,1712
-		# 20151223,21:30:57:0,21:30:55:386,OI605,5656,5658,10,50,5656,5664,5652,41688144,5658,5644
-		# 20151223,21:30:57:0,21:30:55:387,OI607,5548,5790,1,4,5646,0,0,0,0,5646    os<< pDepthMarketData->TradingDay;
-		
+
 		# os<< pDepthMarketData->TradingDay;
 		# os<< "," << pDepthMarketData->UpdateTime;
 		# os<< ":" << pDepthMarketData->UpdateMillisec;
@@ -82,6 +83,7 @@ sub run()
 		next unless /^201/;
 		#有待更新  因ctp_record更新之缘故
 		my($d,$t,$lt,$ctr,$bp,$ap,$bv,$av,$lp,$avp,$turnover,$volume,$oi,$o,$h,$l,$hlimit,$llimit,$presp,$precp,$preoi)=(split/,/);
+		next unless /^201/;
 		next unless &match_ctr($ctr);
 		next unless &match_time($t,$lt);
 		if(&new_bar($t,$lt))
