@@ -5,13 +5,13 @@
 use FindBin qw($Bin);
 use Getopt::Long;
 use File::Path;
-use 5.010;
+use 5.22.0;
 
 use lib "c:/code";
 use WMATH;
 
 my $ctr="cu1601";
-my $date=20151223;
+my $date=20151228;
 GetOptions(
 	"ctr=s" =>\$ctr,
 ); 
@@ -46,8 +46,13 @@ sub load_cta1(@)
 }
 sub run()
 {
-#	open(IN,"./receiver/test_receiver.exe |");
-	open(IN,"E:/receiver/20151223.txt");
+
+	open(IN,"E:/receiver/20151228.txt");
+
+	my $lastoi=0;
+	my $lastap=0;
+	my $lastv=0;
+	my $lastto=0;
 	while(<IN>)
 	{	
 		# 20151223,21:30:58:0,21:30:55:379,MA605,1710,1711,476,1248,1710,1717,1705,758718996,1711,1692
@@ -55,6 +60,7 @@ sub run()
 		# 20151223,21:30:57:0,21:30:55:386,OI605,5656,5658,10,50,5656,5664,5652,41688144,5658,5644
 		# 20151223,21:30:57:0,21:30:55:387,OI607,5548,5790,1,4,5646,0,0,0,0,5646    
 		
+
 		# os<< pDepthMarketData->TradingDay;
 		# os<< "," << pDepthMarketData->UpdateTime;
 		# os<< ":" << pDepthMarketData->UpdateMillisec;
@@ -65,14 +71,24 @@ sub run()
 		# os<< "," << pDepthMarketData->BidVolume1;
 		# os<< "," << pDepthMarketData->AskVolume1;
 		# os<< "," << pDepthMarketData->LastPrice;
-		# os<< "," << pDepthMarketData->HighestPrice;
-		# os<< "," << pDepthMarketData->LowestPrice;
-		# os<< "," << pDepthMarketData->Turnover;
-		# os<< "," << pDepthMarketData->AveragePrice;
-		# os<< "," << pDepthMarketData->PreSettlementPrice;
+		# os<< "," << pDepthMarketData->AveragePrice;//当日均价
+		# os<< "," << pDepthMarketData->Turnover;//成交金额
+		# os<< "," << pDepthMarketData->Volume;//数量
+		# os<< "," << pDepthMarketData->OpenInterest;//持仓量
+		# os<< "," << pDepthMarketData->OpenPrice;//今开
+		# os<< "," << pDepthMarketData->HighestPrice;//今高
+		# os<< "," << pDepthMarketData->LowestPrice;//今低
+		# os<< "," << pDepthMarketData->UpperLimitPrice;//涨停板价格
+		# os<< "," << pDepthMarketData->LowerLimitPrice;//跌停板价格
+		# os<< "," << pDepthMarketData->PreSettlementPrice;//昨结算
+		# os<< "," << pDepthMarketData->PreClosePrice;//昨收盘
+		# os<< "," << pDepthMarketData->PreOpenInterest;//昨持仓
+		# os<< endl;
+		
 		next unless /^201/;
 		#有待更新  因ctp_record更新之缘故
-		my($d,$t,$lt,$ctr,$bp,$ap,$bv,$av,$lp,$h,$l,$interest)=(split/,/);
+		my($d,$t,$lt,$ctr,$bp,$ap,$bv,$av,$lp,$avp,$turnover,$volume,$oi,$o,$h,$l,$hlimit,$llimit,$presp,$precp,$preoi)=(split/,/);
+		next unless /^201/;
 		next unless &match_ctr($ctr);
 		next unless &match_time($t,$lt);
 		if(&new_bar($t,$lt))
@@ -85,11 +101,11 @@ sub run()
 		$bar{$barcount}{'h'}//=$lp;$bar{$barcount}{'h'}=$lp>$bar{$barcount}{'h'}?$lp:$bar{$barcount}{'h'};
 		$bar{$barcount}{'l'}//=$lp;$bar{$barcount}{'l'}=$lp<$bar{$barcount}{'l'}?$lp:$bar{$barcount}{'l'};
 		$bar{$barcount}{'c'}=$lp;
-		$bar{$barcount}{'i'}//=$interest;#有待检查
+		$bar{$barcount}{'i'}//=$oi;#有待检查
 		#$bar{$barcount}{'v'}//=$v;#有待检查
 	
 		
-		print "$interest\n";
+		print "$oi\n";
 		#print STDERR "$_\n";
 	}
 }
@@ -115,7 +131,7 @@ sub check_pos(@)
 {
 	return 1;
 }
-
+__DATA__
 流程  
 
 1	读取历史信息
