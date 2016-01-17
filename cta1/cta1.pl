@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w 
 
 #输出设定仓位与设定时间，最后设定的排在最前 用开始的button就行  上面显示每个合约的目标仓位 双击之后变蓝 双击前是绿色 更新之后重新变为绿色
-
+#仅处理一个ctr
 use FindBin qw($Bin);
 use Getopt::Long;
 use File::Path;
@@ -19,19 +19,21 @@ GetOptions(
 my %bar;
 my %dkxb;
 my %lonb;
-my $barcount=1;
+my $barcount=0;
+my ($sym)=($ctr=~/^(\D+)/);
 &load_cta1();
 &run();
 
 sub load_cta1(@)
 {
-	my $file="c:/report/$date/cta1.txt";
+	my $file="c:/report/$date/cta1.txt";#这个文件名有问题 需要加symbol
 	open(IN,"$file") or die "Cannot open CTA1 file $file\n";
 	while(<IN>)
 	{
 		s/\s+$//;
-		next unless $_;
-		my($t,$o,$h,$l,$c,$v,$i,$lon,$dkx)=(split/,/);
+		next unless $_;	
+		my($t,$o,$h,$l,$c,$v,$i,$lon,$dkx,$lc,$vid,$rc,$long,$diff,$dea,$a,$dkx_b,$dkx_d,$nowdkx)=(split/,/);
+		$barcount++;
 		$bar{$barcount}{'t'}=$t;
 		$bar{$barcount}{'o'}=$o;
 		$bar{$barcount}{'h'}=$h;
@@ -41,13 +43,24 @@ sub load_cta1(@)
 		$bar{$barcount}{'v'}=$v;
 		$bar{$barcount}{'lon'}=$lon;
 		$bar{$barcount}{'dkx'}=$dkx;
-		$barcount++;
+		
+		$bar{$barcount}{'lc'}=$lc;
+		$bar{$barcount}{'vid'}=$vid;
+		$bar{$barcount}{'rc'}=$rc;
+		$bar{$barcount}{'long'}=$long;
+		$bar{$barcount}{'diff'}=$diff;
+		$bar{$barcount}{'dea'}=$dea;
+		
+		$bar{$barcount}{'a'}=$a;
+		$bar{$barcount}{'dkx_b'}=$dkx_b;
+		$bar{$barcount}{'dkx_d'}=$dkx_d;
+		$bar{$barcount}{'nowdkx'}=$nowdkx;
 	}
 }
 sub run()
 {
 
-	open(IN,"E:/receiver/20151228.txt");
+	open(IN,"E:/receiver/20151228.txt") or die "Cannot open tick file\n";
 
 	my $lastoi=0;
 	my $lastap=0;
@@ -84,10 +97,10 @@ sub run()
 		# os<< "," << pDepthMarketData->PreClosePrice;//昨收盘
 		# os<< "," << pDepthMarketData->PreOpenInterest;//昨持仓
 		# os<< endl;
-		
-		next unless /^201/;
+
 		#有待更新  因ctp_record更新之缘故
-		my($d,$t,$lt,$ctr,$bp,$ap,$bv,$av,$lp,$avp,$turnover,$volume,$oi,$o,$h,$l,$hlimit,$llimit,$presp,$precp,$preoi)=(split/,/);
+		#my($d,$t,$lt,$ctr,$bp,$ap,$bv,$av,$lp,$avp,$turnover,$volume,$oi,$o,$h,$l,$hlimit,$llimit,$presp,$precp,$preoi)=(split/,/);
+		my($d,$t,$lt,$ctr,$bp,$ap,$bv,$av,$lp,$h,$l,$oi)=(split/,/);
 		next unless /^201/;
 		next unless &match_ctr($ctr);
 		next unless &match_time($t,$lt);
@@ -95,6 +108,7 @@ sub run()
 		{
 			&check_pos();
 			$barcount++;
+			print"$t,$barcount\n";
 		}
 		$bar{$barcount}{'t'}//=$t;
 		$bar{$barcount}{'o'}//=$lp;
@@ -105,7 +119,7 @@ sub run()
 		#$bar{$barcount}{'v'}//=$v;#有待检查
 	
 		
-		print "$oi\n";
+#		print "$oi\n";
 		#print STDERR "$_\n";
 	}
 }
@@ -115,21 +129,224 @@ sub display(@)
 }
 sub match_ctr(@)
 {
-	my $ctr=shift  @_;
-	return 0 unless $ctr=~/if1601/i;
-	return 1;
+	my $nowctr=shift  @_;
+	return 1 if uc $nowctr eq uc $ctr;
+	return 0;
 }
 sub match_time(@)
 {
-	return 1;
+	my($t,$lt)=@_;
+	my ($h,$m,$s)=(split":",$t);
+	if#股指期货交易时间
+	(
+			(uc $sym eq 'IF')
+		or	(uc $sym eq 'IH')
+		or	(uc $sym eq 'IC')
+	)
+	{
+		if
+		(
+				($h==9 and $m>=30)
+			or	($h==10)
+			or	($h==11 and $m<30)
+			or	($h==11 and $m==30 and $s==0)
+			or	($h==13)
+			or	($h==14)
+			or	($h==15 and $m==0 and $s==0)
+		)
+		{
+			return 1;
+		}
+		else
+		{
+			return 0;
+		}		
+	}
+	elsif#国债期货交易时间
+	(
+			(uc $sym eq 'TF')
+		or	(uc $sym eq 'T')
+	)
+	{
+		if
+		(
+				($h==9 and $m>=15)
+			or	($h==10)
+			or	($h==11 and $m<30)
+			or	($h==11 and $m==30 and $s==0)
+			or	($h==13)
+			or	($h==14)
+			or	($h==15 and $m<15)
+			or	($h==15 and $m==15 and $s==0)
+		)
+		{
+			return 1;
+		}
+		else
+		{
+			return 0;
+		}		
+	}
+	else
+	{
+		if#商品期货日盘交易时间
+		(
+				($h==9)
+			or	($h==10)
+			or	($h==11 and $m<30)
+			or	($h==11 and $m==30 and $s==0)
+			or	($h==13)
+			or	($h==14)
+			or	($h==15 and $m==0 and $s==0)
+		)
+		{
+			return 1;
+		}
+		else
+		{
+			return 0;
+		}
+	}	
 }
 sub new_bar(@)
 {
-	return 1;
+	my($t,$lt)=@_;
+	state %bar_exist;
+	
+	my $ret=0;
+	my ($h,$m,$s)=(split":",$t);
+	
+	my $count=15*int($m/15);
+	$count="$h:$count";
+	if(defined $bar_exist{$count})
+	{
+		$ret=0;
+	}
+	else
+	{
+		$ret=1;
+	}
+	$bar_exist{$count}=1;
+	
+	return $ret;
 }
 sub check_pos(@)
 {
-	return 1;
+	$bar{$barcount}{'lon'}=&cal_lon();
+	$bar{$barcount}{'dkx'}=&cal_dkx();
+
+	if($barcount<40)
+	{
+		return 0;
+	}
+}
+sub cal_lon()
+{
+	return 0 if $barcount==0;
+	return 0 unless $barcount>2; #计算vid需求
+	my $lc=$bar{$barcount-1}{'c'};
+	my $vid=($bar{$barcount-1}{'c'}+$bar{$barcount-2}{'c'})/
+		(
+			(
+				abs($bar{$barcount-1}{'h'}+$bar{$barcount-2}{'h'})
+			+	abs($bar{$barcount-1}{'h'}-	$bar{$barcount-2}{'h'})
+			-	abs($bar{$barcount-1}{'l'}+	$bar{$barcount-2}{'l'})
+			+	abs($bar{$barcount-1}{'l'}-	$bar{$barcount-2}{'l'})
+			)
+		*50
+		);
+	my $rc=($bar{$barcount}{'c'}-$lc)*$vid;
+	my $long=$rc;
+	
+	$bar{$barcount}{'lc'}=$lc;
+	$bar{$barcount}{'vid'}=$vid;
+	$bar{$barcount}{'rc'}=$rc;
+	$bar{$barcount}{'long'}=$long;
+	
+	return 0 unless $barcount>22; #计算dea需求
+	my $diff=&cal_diff(10);
+	my $dea=&cal_diff(20);
+	my $lon=$diff-$dea;	
+
+
+	$bar{$barcount}{'diff'}=$diff;
+	$bar{$barcount}{'dea'}=$dea;
+	$bar{$barcount}{'lon'}=$lon;
+}
+sub cal_diff(@)
+{
+	my $count=shift @_;
+	my $ret=0;
+	for my $n(0..$count-1)
+	{
+		$ret+=$bar{$barcount-$n}{'long'};
+	}
+	return 0 unless $count;
+	return $ret/$count;
+}
+sub cal_dkx()
+{
+	# 1、当多空线上穿其均线时为买入信号；
+	# 2、当多空线下穿其均线时为卖出信号。
+	# a：=(3*收盘价+最低价+开盘价+最高价)/6；
+	# b：(20*a+19*向前引用(a,1)+18*向前引用(a,2)+17*向前引用(a,3)+16*向前引用(a,4)+15*向前引用(a,5)+14*向前引用(a,6)
+	# +13*向前引用(a,7)+12*向前引用(a,8)+11*向前引用(a,9)+10*向前引用(a,10)+9*向前引用(a,11)+8*向前引用(a,12)
+	# +7*向前引用(a,13)+6*向前引用(a,14)+5*向前引用(a,15)+4*向前引用(a,16)+3*向前引用(a,17)+2*向前引用(a,18)+
+	# 向前引用(a,20))/210；
+	# d:简单移动平均(b,m)
+	# 当B上穿D时为买入信号；
+	# 当B下穿D时为卖出信号；
+	return 0 if $barcount==0;
+	my $a=($bar{$barcount}{'o'}+$bar{$barcount}{'h'}+$bar{$barcount}{'l'}+3*$bar{$barcount}{'c'})/6;
+	$bar{$barcount}{'a'}=$a;
+	
+	##############################
+	return 0 unless $barcount>20; #计算dkx_b需求
+	my $sum=0;
+	for my $n(0..19)
+	{
+		$sum+=(20-$n)*$bar{$barcount-$n}{'a'};
+	}
+	my $dkx_b=$sum/210;
+	$bar{$barcount}{'dkx_b'}=$dkx_b;
+	
+	##############################
+	return 0 unless $barcount>30; #计算dkx_d需求
+	$sum=0;
+	for my $n(0..9)
+	{
+		$sum+=$bar{$barcount-$n}{'dkx_b'};
+	}
+	my $dkx_d=$sum/10;
+	$bar{$barcount}{'dkx_d'}=$dkx_d;
+	if($dkx_d==$dkx_b)
+	{
+		if(defined $bar{$barcount-1}{'nowdkx'})
+		{
+			$bar{$barcount}{'nowdkx'}=$bar{$barcount-1}{'nowdkx'};
+		}
+	}
+	else
+	{
+		$bar{$barcount}{'nowdkx'}=$dkx_b>$dkx_d? 1 : -1;
+	}
+	
+	if(defined $bar{$barcount-1}{'nowdkx'})
+	{
+		if($bar{$barcount}{'nowdkx'}>$bar{$barcount-1}{'nowdkx'})
+		{
+			$bar{$barcount}{'dkx'}=1;
+		}
+		elsif($bar{$barcount}{'nowdkx'}<$bar{$barcount-1}{'nowdkx'})
+		{
+			$bar{$barcount}{'dkx'}=-1;
+		}
+		else
+		{
+			$bar{$barcount}{'dkx'}=0;
+		}	
+	}
+	return $bar{$barcount}{'dkx'};
 }
 __DATA__
 流程  
