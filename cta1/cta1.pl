@@ -5,6 +5,7 @@
 use FindBin qw($Bin);
 use Getopt::Long;
 use File::Path;
+use POSIX;
 use 5.22.0;
 
 use lib "c:/code";
@@ -21,12 +22,20 @@ my %dkxb;
 my %lonb;
 my $barcount=0;
 my ($sym)=($ctr=~/^(\D+)/);
+&init();
 &load_cta1();
 &run();
 
+sub init()
+{
+	$SIG{'INT'}='on_close';
+	my $logfile=strftime("c:/report/$date/cta1/${ctr}_%Y%m%d_%H_%M_%S",localtime()).".txt";
+	open(OUT_LOG,">$logfile")or die "Cannot open prelog file $logfile\n";
+}
+
 sub load_cta1(@)
 {
-	my $file="c:/report/$date/cta1.txt";#这个文件名有问题 需要加symbol
+	my $file="c:/report/$date/cta1/$sym.txt";
 	open(IN,"$file") or die "Cannot open CTA1 file $file\n";
 	while(<IN>)
 	{
@@ -107,6 +116,7 @@ sub run()
 		if(&new_bar($t,$lt))
 		{
 			&check_pos();
+			&print_log();
 			$barcount++;
 			print"$t,$barcount\n";
 		}
@@ -248,10 +258,10 @@ sub cal_lon()
 	my $vid=($bar{$barcount-1}{'c'}+$bar{$barcount-2}{'c'})/
 		(
 			(
-				abs($bar{$barcount-1}{'h'}+$bar{$barcount-2}{'h'})
-			+	abs($bar{$barcount-1}{'h'}-	$bar{$barcount-2}{'h'})
-			-	abs($bar{$barcount-1}{'l'}+	$bar{$barcount-2}{'l'})
-			+	abs($bar{$barcount-1}{'l'}-	$bar{$barcount-2}{'l'})
+				abs($bar{$barcount-1}{'h'}	+	$bar{$barcount-2}{'h'})
+			+	abs($bar{$barcount-1}{'h'}	-	$bar{$barcount-2}{'h'})
+			-	abs($bar{$barcount-1}{'l'}		+	$bar{$barcount-2}{'l'})
+			+	abs($bar{$barcount-1}{'l'}		-	$bar{$barcount-2}{'l'})
 			)
 		*50
 		);
@@ -347,6 +357,39 @@ sub cal_dkx()
 		}	
 	}
 	return $bar{$barcount}{'dkx'};
+}
+sub print_log()
+{
+	my $t			=defined $bar{$barcount}{'t'}				?	 $bar{$barcount}{'t'}			:	0;
+	my $o			=defined $bar{$barcount}{'o'}				?	 $bar{$barcount}{'o'}			:	0;
+	my $h			=defined $bar{$barcount}{'h'}				?	 $bar{$barcount}{'h'}			:	0;
+	my $l			=defined $bar{$barcount}{'l'}				?	 $bar{$barcount}{'l'}			:	0;
+	my $c			=defined $bar{$barcount}{'c'}				?	 $bar{$barcount}{'c'}			:	0;
+	my $i			=defined $bar{$barcount}{'i'}				?	 $bar{$barcount}{'i'}			:	0;
+	my $v			=defined $bar{$barcount}{'v'}				?	 $bar{$barcount}{'v'}			:	0;
+	my $lon		=defined $bar{$barcount}{'lon'}				?	 $bar{$barcount}{'lon'}		:	0;
+	my $dkx		=defined $bar{$barcount}{'dkx'}			?	 $bar{$barcount}{'dkx'}		:	0;
+
+	my $lc			=defined $bar{$barcount}{'lc'}				?	 $bar{$barcount}{'lc'}			:	0;
+	my $vid		=defined $bar{$barcount}{'vid'}				?	 $bar{$barcount}{'vid'}		:	0;
+	my $rc			=defined $bar{$barcount}{'rc'}				?	 $bar{$barcount}{'rc'}			:	0;
+	my $long		=defined $bar{$barcount}{'long'}			?	 $bar{$barcount}{'long'}		:	0;
+	my $diff		=defined $bar{$barcount}{'diff'}				?	 $bar{$barcount}{'diff'}		:	0;
+	my $dea		=defined $bar{$barcount}{'dea'}			?	 $bar{$barcount}{'dea'}		:	0;
+
+	my $a			=defined $bar{$barcount}{'a'}				?	 $bar{$barcount}{'a'}			:	0;
+	my $dkx_b	=defined $bar{$barcount}{'dkx_b'}		?	 $bar{$barcount}{'dkx_b'}	:	0;
+	my $dkx_d	=defined $bar{$barcount}{'dkx_d'}		?	 $bar{$barcount}{'dkx_d'}	:	0;
+	my $nowdkx=defined $bar{$barcount}{'nowdkx'}		?	$bar{$barcount}{'nowdkx'}	:	0;
+	print OUT_LOG "$t,$o,$h,$l,$c,$i,$v,$lon,$dkx,$lc,$vid,$rc,$long,$diff,$dea,$a,$dkx_b,$dkx_d,$nowdkx\n";
+}
+sub on_close()
+{
+	if()#已写入最后的bar
+	{}
+	else#写入最后的bar
+	{}
+	#关闭输出文件
 }
 __DATA__
 流程  
