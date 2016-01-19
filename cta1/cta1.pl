@@ -36,7 +36,11 @@ sub init()
 sub load_cta1(@)
 {
 	my $file="c:/report/$date/cta1/$sym.txt";
-	open(IN,"$file") or die "Cannot open CTA1 file $file\n";
+	unless (open(IN,"$file"))
+	{
+		print STDERR "Cannot open CTA1 file $file\n";
+		return;
+	}
 	while(<IN>)
 	{
 		s/\s+$//;
@@ -71,7 +75,7 @@ sub run()
 
 	open(IN,"E:/receiver/20151228.txt") or die "Cannot open tick file\n";
 
-	my $lastoi=0;
+	my $lastoi=undef;
 	my $lastap=0;
 	my $lastv=0;
 	my $lastto=0;
@@ -119,19 +123,25 @@ sub run()
 			&print_log();
 			$barcount++;
 			print"$t,$barcount\n";
+			$lastoi=undef;
 		}
 		$bar{$barcount}{'t'}//=$t;
 		$bar{$barcount}{'o'}//=$lp;
 		$bar{$barcount}{'h'}//=$lp;$bar{$barcount}{'h'}=$lp>$bar{$barcount}{'h'}?$lp:$bar{$barcount}{'h'};
 		$bar{$barcount}{'l'}//=$lp;$bar{$barcount}{'l'}=$lp<$bar{$barcount}{'l'}?$lp:$bar{$barcount}{'l'};
 		$bar{$barcount}{'c'}=$lp;
-		$bar{$barcount}{'i'}//=$oi;#有待检查
+		
+		$lastoi//=$oi;
+		$bar{$barcount}{'i'}//=0;
+		$bar{$barcount}{'i'}+=$oi-$lastoi;#有待检查
+		
 		#$bar{$barcount}{'v'}//=$v;#有待检查
 	
 		
-#		print "$oi\n";
+		#print "$oi\n";
 		#print STDERR "$_\n";
 	}
+	close IN;
 }
 sub display(@)
 {
@@ -255,7 +265,7 @@ sub cal_lon()
 	return 0 if $barcount==0;
 	return 0 unless $barcount>2; #计算vid需求
 	my $lc=$bar{$barcount-1}{'c'};
-	my $vid=($bar{$barcount-1}{'c'}+$bar{$barcount-2}{'c'})/
+	my $vid=($bar{$barcount-1}{'i'}+$bar{$barcount-2}{'i'})/
 		(
 			(
 				abs($bar{$barcount-1}{'h'}	+	$bar{$barcount-2}{'h'})
@@ -360,6 +370,8 @@ sub cal_dkx()
 }
 sub print_log()
 {
+	return unless defined $bar{$barcount}{'t'};
+	
 	my $t			=defined $bar{$barcount}{'t'}				?	 $bar{$barcount}{'t'}			:	0;
 	my $o			=defined $bar{$barcount}{'o'}				?	 $bar{$barcount}{'o'}			:	0;
 	my $h			=defined $bar{$barcount}{'h'}				?	 $bar{$barcount}{'h'}			:	0;
@@ -381,14 +393,22 @@ sub print_log()
 	my $dkx_b	=defined $bar{$barcount}{'dkx_b'}		?	 $bar{$barcount}{'dkx_b'}	:	0;
 	my $dkx_d	=defined $bar{$barcount}{'dkx_d'}		?	 $bar{$barcount}{'dkx_d'}	:	0;
 	my $nowdkx=defined $bar{$barcount}{'nowdkx'}		?	$bar{$barcount}{'nowdkx'}	:	0;
+	
 	print OUT_LOG "$t,$o,$h,$l,$c,$i,$v,$lon,$dkx,$lc,$vid,$rc,$long,$diff,$dea,$a,$dkx_b,$dkx_d,$nowdkx\n";
 }
 sub on_close()
 {
-	if()#已写入最后的bar
+	#已写入最后的bar
+	if(1)
+	{
+		&check_pos();
+		&print_log();
+		close OUT_LOG;
+	}
+	#写入最后的bar
+	else
 	{}
-	else#写入最后的bar
-	{}
+	die "ctrl + c reveived\n";
 	#关闭输出文件
 }
 __DATA__
