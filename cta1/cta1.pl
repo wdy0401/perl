@@ -20,6 +20,7 @@ GetOptions(
 my %bar;
 my %dkxb;
 my %lonb;
+my %bar_exist;
 my $barcount=0;
 my ($sym)=($ctr=~/^(\D+)/);
 &init();
@@ -30,6 +31,7 @@ sub init()
 {
 	$SIG{'INT'}='on_close';
 	my $logfile=strftime("c:/report/$date/cta1/${ctr}_%Y%m%d_%H_%M_%S",localtime()).".txt";
+	mkpath "c:/report/$date/cta1" unless -d "c:/report/$date/cta1";
 	open(OUT_LOG,">$logfile")or die "Cannot open prelog file $logfile\n";
 }
 
@@ -142,6 +144,7 @@ sub run()
 		#print STDERR "$_\n";
 	}
 	close IN;
+	&on_tail();
 }
 sub display(@)
 {
@@ -231,7 +234,6 @@ sub match_time(@)
 sub new_bar(@)
 {
 	my($t,$lt)=@_;
-	state %bar_exist;
 	
 	my $ret=0;
 	my ($h,$m,$s)=(split":",$t);
@@ -245,6 +247,7 @@ sub new_bar(@)
 	else
 	{
 		$ret=1;
+		print STDERR "new bar $t $lt\n";
 	}
 	$bar_exist{$count}=1;
 	
@@ -398,18 +401,48 @@ sub print_log()
 }
 sub on_close()
 {
-	#已写入最后的bar
-	if(1)
+	&check_pos();
+	&print_log();
+	close OUT_LOG;
+	die "ctrl + c reveived\n";
+}
+sub on_tail()
+{
+	if(&need_fix_tail())
 	{
 		&check_pos();
 		&print_log();
-		close OUT_LOG;
 	}
-	#写入最后的bar
+	close OUT_LOG;
+}
+sub need_fix_tail()
+{
+	my @ta=(sort keys %bar_exist);
+	return 1 if @ta==0;
+	my $last_k=$ta[-1];
+	my($h,$m)=($last_k=~/(\d+):(\d+)/);	
+	if
+	(		
+			$sym eq 'IF'
+		||	$sym eq 'IH'
+		||	$sym eq 'IC'
+	)
+	{
+		return 0 if $h>=15;
+	}
+	elsif
+	(		
+			$sym eq 'TF'
+		||	$sym eq 'T'
+	)
+	{
+		return 0 if (($h==15 and $m>=15) or $h>15)
+	}
 	else
-	{}
-	die "ctrl + c reveived\n";
-	#关闭输出文件
+	{
+		return 0 if $h>=15;
+	}
+	return 1;
 }
 __DATA__
 流程  
@@ -433,6 +466,8 @@ __DATA__
 	2.4.2	计算 dkx
 		2.4.2.1	计算dkx_b
 		2.4.2.2	计算dkx_d
+		
+		
 		
 	
 
