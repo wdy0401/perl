@@ -29,7 +29,11 @@ my ($sym)=($ctr=~/^(\D+)/);
 
 sub init()
 {
-	$SIG{'INT'}='on_close';
+	$SIG{'INT'}='on_close';	
+	# 这三个都不解决taskkill的问题 taskkill时并不出发on_close
+	# $SIG{'STOP'}='on_close';
+	# $SIG{'KILL'}='on_close';
+	# $SIG{'QUIT'}='on_close';
 	my $logfile=strftime("c:/report/$date/cta1/${ctr}_%Y%m%d_%H_%M_%S",localtime()).".txt";
 	mkpath "c:/report/$date/cta1" unless -d "c:/report/$date/cta1";
 	open(OUT_LOG,">$logfile")or die "Cannot open prelog file $logfile\n";
