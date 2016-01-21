@@ -87,38 +87,8 @@ sub run()
 	my $lastto=0;
 	while(<IN>)
 	{	
-		# 20151223,21:30:58:0,21:30:55:379,MA605,1710,1711,476,1248,1710,1717,1705,758718996,1711,1692
-		# 20151223,21:30:58:0,21:30:55:386,MA609,1729,1730,2,86,1729,1739,1727,12113608,1732,1712
-		# 20151223,21:30:57:0,21:30:55:386,OI605,5656,5658,10,50,5656,5664,5652,41688144,5658,5644
-		# 20151223,21:30:57:0,21:30:55:387,OI607,5548,5790,1,4,5646,0,0,0,0,5646    
-		
-
-		# os<< pDepthMarketData->TradingDay;
-		# os<< "," << pDepthMarketData->UpdateTime;
-		# os<< ":" << pDepthMarketData->UpdateMillisec;
-		# os<<"," << dt.currentDateTime().toString("hh:mm:ss:zzz").toStdString();
-		# os<< "," << pDepthMarketData->InstrumentID;
-		# os<< "," << pDepthMarketData->BidPrice1;
-		# os<< "," << pDepthMarketData->AskPrice1;
-		# os<< "," << pDepthMarketData->BidVolume1;
-		# os<< "," << pDepthMarketData->AskVolume1;
-		# os<< "," << pDepthMarketData->LastPrice;
-		# os<< "," << pDepthMarketData->AveragePrice;//当日均价
-		# os<< "," << pDepthMarketData->Turnover;//成交金额
-		# os<< "," << pDepthMarketData->Volume;//数量
-		# os<< "," << pDepthMarketData->OpenInterest;//持仓量
-		# os<< "," << pDepthMarketData->OpenPrice;//今开
-		# os<< "," << pDepthMarketData->HighestPrice;//今高
-		# os<< "," << pDepthMarketData->LowestPrice;//今低
-		# os<< "," << pDepthMarketData->UpperLimitPrice;//涨停板价格
-		# os<< "," << pDepthMarketData->LowerLimitPrice;//跌停板价格
-		# os<< "," << pDepthMarketData->PreSettlementPrice;//昨结算
-		# os<< "," << pDepthMarketData->PreClosePrice;//昨收盘
-		# os<< "," << pDepthMarketData->PreOpenInterest;//昨持仓
-		# os<< endl;
-
-		#有待更新  因ctp_record更新之缘故
-		#my($d,$t,$lt,$ctr,$bp,$ap,$bv,$av,$lp,$avp,$turnover,$volume,$oi,$o,$h,$l,$hlimit,$llimit,$presp,$precp,$preoi)=(split/,/);
+		#对于不同版本的数据来源 采取不同的解析办法  #1为截至10150121最前的数据版本
+		#1 my($d,$t,$lt,$ctr,$bp,$ap,$bv,$av,$lp,$avp,$turnover,$volume,$oi,$o,$h,$l,$hlimit,$llimit,$presp,$precp,$preoi)=(split/,/);
 		my($d,$t,$lt,$ctr,$bp,$ap,$bv,$av,$lp,$h,$l,$oi)=(split/,/);
 		next unless /^201/;
 		next unless &match_ctr($ctr);
@@ -251,11 +221,10 @@ sub new_bar(@)
 	else
 	{
 		$ret=1;
-		print STDERR "new bar $t $lt\n";
 	}
 	$bar_exist{$count}=1;
 	
-	return $ret;
+	return $ret && morning_break($h,$m);
 }
 sub check_pos(@)
 {
@@ -448,38 +417,30 @@ sub need_fix_tail()
 	}
 	return 1;
 }
-__DATA__
-流程  
-
-1	读取历史信息
-		1.1	历史信息文件
-		1.2	历史信息数据格式
-2	接收来自stdin的数据
-		2.1	判断时间是否在交易时间
-		2.2	判断是否为关注合约（此项可以设计为 每个合约有个一个perl进程，这样可以避免多个合约争夺stdin发生，在子perl进程中，是否判断合约也就不重要了,盖因在主进程中已经判断过了）
-		2.3	判断是否为新的bar
-		2.4	判断是否需要更新position
-		2.5	给出展示信息
-		2.6	将信息写入外部文件 信息即为 1.2中所提到的历史信息数据格式 此处每个子perl进程均需open一个文件
-
-1.2
-	date barseq begtime endtime o h l c etc
-
-2.4
-	2.4.1	计算 lon
-	2.4.2	计算 dkx
-		2.4.2.1	计算dkx_b
-		2.4.2.2	计算dkx_d
-		
-		
-		
-	
-
-
-	
-
-
-
-
-
-
+sub morning_break(@)
+{	
+	#除了中金所  都有节间休息
+	my($h,$m)=@_;
+	if
+	(		
+			$sym eq 'IF'
+		||	$sym eq 'IH'
+		||	$sym eq 'IC'
+		||	$sym eq 'TF'
+		||	$sym eq 'T'
+	)
+	{
+		return 1;
+	}
+	else
+	{
+		if($h==10 and ($m>=15 && $m<30))
+		{
+			return 0;
+		}
+		else
+		{
+			return 1;
+		}
+	}
+}
