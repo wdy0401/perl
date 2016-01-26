@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w 
 
-#����趨��λ���趨ʱ�䣬����趨��������ǰ �ÿ�ʼ��button����  ������ʾÿ����Լ��Ŀ���λ ˫��֮����� ˫��ǰ����ɫ ����֮�����±�Ϊ��ɫ
-#������һ��ctr
+#输出设定仓位与设定时间，最后设定的排在最前 用开始的button就行  上面显示每个合约的目标仓位 双击之后变蓝 双击前是绿色 更新之后重新变为绿色
+#仅处理一个ctr
 use FindBin qw($Bin);
 use Getopt::Long;
 use File::Path;
@@ -22,11 +22,11 @@ GetOptions(
 ); 
 
 __DATA__
-1	�ҵ���������symbol���ļ�
-2	���ƴ��ļ� 
+1	找到最近的相关symbol的文件
+2	复制此文件 
 
-3	���ü�¼��tick������һ��T������
-4	���ܵ�������ʵʱ���ݶԱ�
+3	利用记录的tick重新跑一边T日数据
+4	重跑的数据与实时数据对比
 
-5	�ϲ�symbol�ļ�  ���ú�T+1��
-6	����T��Ӧ�гֲ�����
+5	合并symbol文件  设置好T+1日
+6	给出T日应有持仓数据
