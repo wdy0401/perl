@@ -1,7 +1,5 @@
 #!/usr/bin/perl -w 
 
-#输出设定仓位与设定时间，最后设定的排在最前 用开始的button就行  上面显示每个合约的目标仓位 双击之后变蓝 双击前是绿色 更新之后重新变为绿色
-#仅处理一个ctr
 use FindBin qw($Bin);
 use Getopt::Long;
 use File::Path;
