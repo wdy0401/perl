@@ -13,8 +13,12 @@ use WMATH;
 
 my $ctr="cu1601";
 my $date=20151228;
+my $logfile;
+my $tickfile;
 GetOptions(
-	"ctr=s" =>\$ctr,
+	"ctr=s" 	=>	\$ctr,
+	"logfile=s" =>	\$logfile,
+	"tickfile=s" =>	\$tickfile,
 ); 
 
 my %bar;
@@ -29,12 +33,13 @@ my ($sym)=($ctr=~/^(\D+)/);
 
 sub init()
 {
-	$SIG{'INT'}='on_close';	
+	$SIG{'INT'}='on_close';
+	$|=1;
 	# 这三个都不解决taskkill的问题 taskkill时并不出发on_close
 	# $SIG{'STOP'}='on_close';
 	# $SIG{'KILL'}='on_close';
 	# $SIG{'QUIT'}='on_close';
-	my $logfile=strftime("c:/report/$date/cta1/${ctr}_%Y%m%d_%H_%M_%S",localtime()).".txt";
+	my $logfile//=strftime("c:/report/$date/cta1/${ctr}_%Y%m%d_%H_%M_%S",localtime()).".txt";
 	mkpath "c:/report/$date/cta1" unless -d "c:/report/$date/cta1";
 	open(OUT_LOG,">$logfile")or die "Cannot open prelog file $logfile\n";
 }
@@ -78,8 +83,8 @@ sub load_cta1(@)
 }
 sub run()
 {
-
-	open(IN,"E:/receiver/20151228.txt") or die "Cannot open tick file\n";
+	$tickfile//="E:/receiver/20151228.txt";
+	open(IN,$tickfile) or die "Cannot open tick file $tickfile\n";
 
 	my $lastoi=undef;
 	my $lastap=0;
@@ -370,7 +375,7 @@ sub print_log()
 	my $dkx_d	=defined $bar{$barcount}{'dkx_d'}		?	 $bar{$barcount}{'dkx_d'}	:	0;
 	my $nowdkx=defined $bar{$barcount}{'nowdkx'}		?	$bar{$barcount}{'nowdkx'}	:	0;
 	
-	print OUT_LOG "$t,$o,$h,$l,$c,$i,$v,$lon,$dkx,$lc,$vid,$rc,$long,$diff,$dea,$a,$dkx_b,$dkx_d,$nowdkx\n";
+	print OUT_LOG "$date:$t,$o,$h,$l,$c,$i,$v,$lon,$dkx,$lc,$vid,$rc,$long,$diff,$dea,$a,$dkx_b,$dkx_d,$nowdkx\n";
 }
 sub on_close()
 {
