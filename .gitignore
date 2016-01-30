@@ -1,3 +1,4 @@
+*.csv
 /blib/
 /.build/
 _build/
