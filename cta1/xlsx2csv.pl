@@ -1,0 +1,108 @@
+my @fs=qw(cf1511 
+cf1601 
+cf1603 
+cf1605 
+cf1607 
+cf1609 
+cf1611 
+j1510 
+j1511 
+j1601 
+j1602 
+j1603 
+j1604 
+j1605 
+j1606 
+j1607 
+j1608 
+j1609 
+j1610 
+jm1512 
+jm1601 
+jm1602 
+jm1603 
+jm1604 
+jm1605 
+jm1606 
+jm1607 
+jm1608 
+jm1609 
+jm1610 
+jm1611 
+jm1612 
+l1510 
+l1511 
+l1512 
+l1601 
+l1602 
+l1603 
+l1604 
+l1605 
+l1606 
+l1608 
+l1609 
+l1610 
+l1611 
+l1612 
+p1510 
+p1511 
+p1512 
+p1601 
+p1602 
+p1603 
+p1604 
+p1605 
+p1606 
+p1607 
+p1608 
+p1609 
+p1610 
+p1611 
+p1612 
+rb1510 
+rb1511 
+rb1512 
+rb1601 
+rb1602 
+rb1603 
+rb1604 
+rb1605 
+rb1606 
+rb1607 
+rb1608 
+rb1609 
+rb1610 
+rb1611 
+rb1612 
+ta1510 
+ta1511 
+ta1512 
+ta1601 
+ta1602 
+ta1603 
+ta1604 
+ta1605 
+ta1606 
+ta1607 
+ta1608 
+ta1609 
+ta1610 
+ta1611 
+ta1612 
+);
+
+
+my $line=' 
+    Workbooks.Open Filename:="E:\c1\nd\AAAA.xlsx"
+    ActiveWorkbook.SaveAs Filename:="E:\c1\nd\AAAA.csv", FileFormat:=xlCSV, _
+        CreateBackup:=False
+    ActiveWorkbook.Save
+    ActiveWindow.Close
+	';
+for my $f(@fs)
+{
+	my $nl=$line;
+	$nl=~s/AAAA/$f/g;
+	print"$nl";
+}	
+	
