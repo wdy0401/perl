@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-opendir(DH,"./nd") or die "cannot open dir ./nd\n";
+opendir(DH,"./000") or die "cannot open dir ./nd\n";
 for my $file(readdir DH)
 {
 	next unless $file=~/csv/;
