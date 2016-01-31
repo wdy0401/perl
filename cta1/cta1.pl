@@ -1,7 +1,6 @@
 #!/usr/bin/perl -w 
 
-#输出设定仓位与设定时间，最后设定的排在最前 用开始的button就行  上面显示每个合约的目标仓位 双击之后变蓝 双击前是绿色 更新之后重新变为绿色
-#仅处理一个ctr
+#perl cta1.pl -date 20151030 -tick_type tr_tick -ctr cf1601 -logfile c:/report/20151030/cta1/cf.txt -tickfile ./split_tick/20151030/cf1601.csv
 use FindBin qw($Bin);
 use Getopt::Long;
 use File::Path;
@@ -15,17 +14,22 @@ my $ctr="cu1601";
 my $date=20151228;
 my $logfile;
 my $tickfile;
+my $tick_type="2015_tick";#tr_tick
+my $today_begin=0;
 GetOptions(
-	"ctr=s" 	=>	\$ctr,
-	"logfile=s" =>	\$logfile,
-	"tickfile=s" =>	\$tickfile,
+	"date=s"		=>	\$date,
+	"ctr=s" 			=>	\$ctr,
+	"logfile=s" 	=>	\$logfile,
+	"tickfile=s" 	=>	\$tickfile,
+	"tick_type=s"=>	\$tick_type,
 ); 
 
 my %bar;
 my %dkxb;
 my %lonb;
 my %bar_exist;
-my $barcount=0;
+my $barcount=0;#第一个bar的最开始不打印
+my $last_check_time=0;#15：00这个bar数据14：45 所以没有15：00开始的bar
 my ($sym)=($ctr=~/^(\D+)/);
 &init();
 &load_cta1();
@@ -39,14 +43,14 @@ sub init()
 	# $SIG{'STOP'}='on_close';
 	# $SIG{'KILL'}='on_close';
 	# $SIG{'QUIT'}='on_close';
-	my $logfile//=strftime("c:/report/$date/cta1/${ctr}_%Y%m%d_%H_%M_%S",localtime()).".txt";
+	$logfile//=strftime("c:/report/$date/cta1/${sym}_%Y%m%d_%H_%M_%S",localtime()).".txt";
 	mkpath "c:/report/$date/cta1" unless -d "c:/report/$date/cta1";
 	open(OUT_LOG,">$logfile")or die "Cannot open prelog file $logfile\n";
 }
 
 sub load_cta1(@)
 {
-	my $file="c:/report/$date/cta1/$sym.txt";
+	my $file="c:/report/$date/cta1/pre_$sym.txt";
 	unless (open(IN,"$file"))
 	{
 		print STDERR "Cannot open CTA1 file $file\n";
@@ -94,33 +98,46 @@ sub run()
 	{	
 		#对于不同版本的数据来源 采取不同的解析办法  #1为截至10150121最前的数据版本
 		#1 my($d,$t,$lt,$ctr,$bp,$ap,$bv,$av,$lp,$avp,$turnover,$volume,$oi,$o,$h,$l,$hlimit,$llimit,$presp,$precp,$preoi)=(split/,/);
-		my($d,$t,$lt,$ctr,$bp,$ap,$bv,$av,$lp,$h,$l,$oi)=(split/,/);
-		next unless /^201/;
-		next unless &match_ctr($ctr);
-		next unless &match_time($t,$lt);
+		my($d,$t,$lt,$ctr,$bp,$ap,$bv,$av,$lp,$h,$l,$oi,$v);
+		if($tick_type eq "2015_tick")
+		{
+			($d,$t,$lt,$ctr,$bp,$ap,$bv,$av,$lp,$h,$l,$oi)=(split/,/);
+			next unless /^201/;
+			next unless &match_ctr($ctr);
+			next unless &match_time($t,$lt);
+		
+		}
+		elsif($tick_type eq "tr_tick")
+		{
+			($d,$t,undef,undef,undef,$lp,undef,undef,$v,$oi)=(split/,/);
+			$lt=undef;
+			next unless &match_time($t,$lt);
+		}
 		if(&new_bar($t,$lt))
 		{
 			&check_pos();
 			&print_log();
 			$barcount++;
-			print"$t,$barcount\n";
 			$lastoi=undef;
 		}
 		$bar{$barcount}{'t'}//=$t;
+		$last_check_time=$t;
+		
 		$bar{$barcount}{'o'}//=$lp;
 		$bar{$barcount}{'h'}//=$lp;$bar{$barcount}{'h'}=$lp>$bar{$barcount}{'h'}?$lp:$bar{$barcount}{'h'};
 		$bar{$barcount}{'l'}//=$lp;$bar{$barcount}{'l'}=$lp<$bar{$barcount}{'l'}?$lp:$bar{$barcount}{'l'};
 		$bar{$barcount}{'c'}=$lp;
 		
 		$lastoi//=$oi;
-		$bar{$barcount}{'i'}//=0;
-		$bar{$barcount}{'i'}+=$oi-$lastoi;#有待检查
-		
-		#$bar{$barcount}{'v'}//=$v;#有待检查
-	
-		
-		#print "$oi\n";
-		#print STDERR "$_\n";
+		if($tick_type eq "2015_tick")
+		{
+			$bar{$barcount}{'v'}//=undef;		
+		}
+		elsif($tick_type eq "tr_tick")
+		{
+			$bar{$barcount}{'v'}//=0;
+			$bar{$barcount}{'v'}+=$v;
+		}
 	}
 	close IN;
 	&on_tail();
@@ -246,16 +263,31 @@ sub cal_lon()
 	return 0 if $barcount==0;
 	return 0 unless $barcount>2; #计算vid需求
 	my $lc=$bar{$barcount-1}{'c'};
-	my $vid=($bar{$barcount-1}{'i'}+$bar{$barcount-2}{'i'})/
-		(
+	my $vid;
+	if(			
 			(
 				abs($bar{$barcount-1}{'h'}	+	$bar{$barcount-2}{'h'})
 			+	abs($bar{$barcount-1}{'h'}	-	$bar{$barcount-2}{'h'})
 			-	abs($bar{$barcount-1}{'l'}		+	$bar{$barcount-2}{'l'})
 			+	abs($bar{$barcount-1}{'l'}		-	$bar{$barcount-2}{'l'})
-			)
-		*50
-		);
+			)==0
+		)
+		{
+			$vid=0;
+		}
+		else
+		{
+			$vid=($bar{$barcount-1}{'v'}+$bar{$barcount-2}{'v'})/
+			(
+				(
+					abs($bar{$barcount-1}{'h'}	+	$bar{$barcount-2}{'h'})
+				+	abs($bar{$barcount-1}{'h'}	-	$bar{$barcount-2}{'h'})
+				-	abs($bar{$barcount-1}{'l'}		+	$bar{$barcount-2}{'l'})
+				+	abs($bar{$barcount-1}{'l'}		-	$bar{$barcount-2}{'l'})
+				)
+			*50
+			);
+		}
 	my $rc=($bar{$barcount}{'c'}-$lc)*$vid;
 	my $long=$rc;
 	
@@ -352,6 +384,11 @@ sub cal_dkx()
 sub print_log()
 {
 	return unless defined $bar{$barcount}{'t'};
+	if($today_begin==0)
+	{
+		$today_begin=1;
+		return;
+	}
 	
 	my $t			=defined $bar{$barcount}{'t'}				?	 $bar{$barcount}{'t'}			:	0;
 	my $o			=defined $bar{$barcount}{'o'}				?	 $bar{$barcount}{'o'}			:	0;
@@ -395,10 +432,8 @@ sub on_tail()
 }
 sub need_fix_tail()
 {
-	my @ta=(sort keys %bar_exist);
-	return 1 if @ta==0;
-	my $last_k=$ta[-1];
-	my($h,$m)=($last_k=~/(\d+):(\d+)/);	
+	my $last_k=$last_check_time;
+	my($h,$m)=($last_k=~/^(\d+):(\d+)/);	
 	if
 	(		
 			$sym eq 'IF'

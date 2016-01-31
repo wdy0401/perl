@@ -12,45 +12,62 @@ use WMATH;
 use WDATE;
 my $sym="cu";
 my $date=20151228;
-my $logfile;
-my $tickfile;
+my $length_limit=500;
 
 GetOptions(
 	"sym=s" 	=>	\$sym,
-	"logfile=s" =>	\$logfile,
-	"tickfile=s" =>	\$tickfile,
+	"date=s" 	=>	\$date,
+	
+	"length_limit=s" =>	\$length_limit,
 ); 
 WDATE->new();
 my $nextday=&findnexttradingday($date);
-print"$nextday\n";
-sub gen_nextday_file(@)
+&finish_today();
+&prepare_nextday();
+sub finish_today()
 {
-	my @files=find_record_file();
+}
+sub prepare_nextday()
+{
+	&gen_nextday_file();
+}
+
+sub gen_nextday_file()
+{
+	my @files=("c:/report/$date/cta1/pre_$sym.txt", "c:/report/$date/cta1/$sym.txt");
 	my @message=();
 	for my $file(@files)
 	{
-		open(IN,$file) or die "Cannot open file $file\n";
+		open(IN,$file) or (print STDERR "Cannot open file $file\n" and next);
 		while(<IN>)
 		{
 			push @message,$_;
 		}
 		close IN;
 	}
-	my $outfile="c:/report/$nextday/cta1/$sym.txt";
+	my $outfile="c:/report/$nextday/cta1/pre_$sym.txt";
+	mkpath "c:/report/$nextday/cta1"unless -d "c:/report/$nextday/cta1";
 	open(OUT,"> $outfile") or die "Cannot open file $outfile\n";
-	print OUT @message;
+	my $begpos=@message>$length_limit?@message-$length_limit:0;
+	for my $ct($begpos..(@message-1))
+	{
+		print OUT $message[$ct];
+	}
 	close OUT;
-}
-sub find_next_day()
-{
-}
-sub find_record_file()
-{
 }
 sub recal_record()
 {
 #just cmd with tickfile para
 }
+
+
+
+
+
+
+
+
+
 sub set_position_real()
 {
 }
@@ -64,5 +81,5 @@ __DATA__
 3	利用记录的tick重新跑一边T日数据
 4	重跑的数据与实时数据对比
 
-5	合并symbol文件  设置好T+1日		$sym.txt
+5	合并symbol文件  设置好T+1日		pre_$sym.txt
 6	给出T日应有持仓数据 					cta1.position

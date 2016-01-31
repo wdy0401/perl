@@ -1,6 +1,8 @@
 #合并tick文件
 
-完成volume的辨别
+#完成volume的辨别 倒数第二个
+
+#完成tick文件的分割
 
 完成post
 
@@ -16,3 +18,4 @@
 
 merge
 yearmonthday
+split_tick
