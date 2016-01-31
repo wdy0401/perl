@@ -1,4 +1,5 @@
 #!/usr/bin/perl -w
+#有新数据后 合并数据只用 老数据 000/ 新数据nd 合并后nd1
 opendir(DH,"./nd") or die "cannot open dir ./nd\n";
 for my $file(readdir DH)
 {
