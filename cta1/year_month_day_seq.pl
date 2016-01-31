@@ -14,6 +14,7 @@ sub fixfile(@)
 	my $f=shift @_;
 	my $fi="./nd1/$f";
 	my $fo="./tick/$f";
+	return if -s $fo;
 	return unless -s $fi;
 	open(IN ,"$fi") or die "cannot open file $fi\n";
 	open(OUT," >$fo")or die "cannot open file $fo\n";

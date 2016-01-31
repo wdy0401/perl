@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 use File::Path;
-opendir(DH,"./tick") or die "cannot open dir ./nd\n";
+opendir(DH,"./tick") or die "cannot open dir ./tick\n";
 for my $file(readdir DH)
 {
 	next unless $file=~/csv/;
@@ -25,6 +25,7 @@ sub split_file(@)
 	for my $date(sort keys %dh)
 	{
 		mkpath "./split_tick/$date";
+		next if -s "./split_tick/$date/$f";
 		open(OUT," >./split_tick/$date/$f") or die"Cannot open file ./split_tick/$date/$f\n";
 		print OUT join"",@{$dh{$date}};
 		close OUT;
