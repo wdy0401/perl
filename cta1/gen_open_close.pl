@@ -46,7 +46,7 @@ sub cal_return()
 }
 sub load_mainctr()
 {
-	my $fi="./0131mainctr.txt";
+	my $fi="./0214mainctr.txt";
 	open(IN ,"$fi") or die "cannot open file $fi\n";
 	while(<IN>)
 	{		

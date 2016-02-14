@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-my $f="0131mainctr.txt";
+my $f="0214mainctr.txt";
 open(IN ,"$f") or die "cannot open file $f\n";
 my @re;
 my @syms=qw!cf j jm l p rb ta!;

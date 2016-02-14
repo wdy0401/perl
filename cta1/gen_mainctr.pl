@@ -95,6 +95,7 @@ sub readfile(@)
 		#my $dt=$y*10000+$m*100+$d;
 		#$dt=$y*100+$m+$d*10000 if $d>1000;
 		next unless defined $re{$dt};
+		my ($minute)=($t=~/^(\d+)/);next unless $minute>8 and $minute<16;
 		$ch{$dt}{$sym}{$ctr}{'vol'}//=0;
 		$ch{$dt}{$sym}{$ctr}{'vol'}+=$vol;
 		$ch{$dt}{$sym}{$ctr}{'oi'}=$oi;
