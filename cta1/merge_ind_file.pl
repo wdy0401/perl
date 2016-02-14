@@ -10,11 +10,10 @@ for my $file(readdir DH)
 	opendir(SUBDH,"$dir/$file/cta1") or die "cannot open dir $dir/$file/cta1\n";
 	for my $subfile(readdir SUBDH)
 	{
-#      print STDERR "SUBFILE $subfile\n";
       next if -d "$dir/$file/cta1/$subfile";
-      next unless $subfile!~/pre/;
+      next if $subfile=~/pre/;
+      next if $subfile=~/\_/;
       my ($sym)=($subfile=~/^(\w+)\./);
- #     print STDERR "SS\t$subfile,$sym\n";
       @arr=(@arr,&readfile("$dir/$file/cta1/$subfile",$sym))    
 	}
 }

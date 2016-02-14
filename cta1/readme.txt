@@ -35,7 +35,7 @@
   split_tick
   gen_mainctr
   daily_driver.pl
-  mergeind tee ind.txt |awk -F"," '{print $1,$2,$9,$10}' ind.txt | grep -P -v "0$" >ind_short.txt
+ perl merge_ind_file.pl |  tee ind.txt |awk -F"," '{print $1,$2,$9,$10}' | grep -P -v "0$" >ind_short.txt
   gen_open_close
 
 

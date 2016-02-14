@@ -16,12 +16,14 @@ my $logfile;
 my $tickfile;
 my $tick_type="2015_tick";#tr_tick
 my $today_begin=0;
+my $bar_minute=15;
 GetOptions(
-	"date=s"		=>	\$date,
+	"date=s"	  	=>	\$date,
 	"ctr=s" 			=>	\$ctr,
 	"logfile=s" 	=>	\$logfile,
 	"tickfile=s" 	=>	\$tickfile,
-	"tick_type=s"=>	\$tick_type,
+	"tick_type=s" =>  \$tick_type,
+	"bar_minute=s"=>	\$bar_minute,
 ); 
 
 my %bar;
@@ -234,7 +236,7 @@ sub new_bar(@)
 	my $ret=0;
 	my ($h,$m,$s)=(split":",$t);
 	
-	my $count=15*int($m/15);
+	my $count=$bar_minute*int($m/$bar_minute);
 	$count="$h:$count";
 	if(defined $bar_exist{$count})
 	{
