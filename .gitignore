@@ -67,3 +67,6 @@ $RECYCLE.BIN/
 *.lnk
 cta1/ind.txt
 cta1/ind_short.txt
+cta1/open_close_*.txt
+cta1/ind_*.txt
+cta1/log.txt
