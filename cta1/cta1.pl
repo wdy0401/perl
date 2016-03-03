@@ -225,7 +225,8 @@ sub match_time(@)
 		}
 		else
 		{
-			return 0;
+      #考虑夜盘
+			return 1;
 		}
 	}	
 }
@@ -235,8 +236,10 @@ sub new_bar(@)
 	
 	my $ret=0;
 	my ($h,$m,$s)=(split":",$t);
-	
-	my $count=$bar_minute*int($m/$bar_minute);
+	my $summin=0;
+	$summin=($h-9)*60+$m if($sym ne "IF" and $sym ne "IH" and $sym ne "IC" and $sym ne "TF" and $sym ne "T");
+	$summin=($h-9)*60+$m-30 unless ($sym ne "IF" and $sym ne "IH" and $sym ne "IC" and $sym ne "TF" and $sym ne "T");
+	my $count=$bar_minute*int($summin/$bar_minute);
 	$count="$h:$count";
 	if(defined $bar_exist{$count})
 	{
@@ -455,6 +458,7 @@ sub need_fix_tail()
 	}
 	else
 	{
+    #相当于不考虑最后的时间段
     return 1;
 		#return 0 if $h>=15;
 	}

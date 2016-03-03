@@ -1,5 +1,9 @@
 #!/usr/bin/perl -w
-
+use Getopt::Long;
+my $bar_minute;
+GetOptions(
+	"bar_minute=s" 	=>	\$bar_minute,
+); 
 my %mctr;
 my %sym_pos;
 my %sym_lastp;
@@ -10,7 +14,7 @@ my %sym_lastt;
 
 sub cal_return()
 {
-	my $fi="./ind.txt";
+	my $fi="./ind_$bar_minute.txt";
 	open(IN ,"$fi") or die "cannot open file $fi\n";
 	while(<IN>)
 	{		

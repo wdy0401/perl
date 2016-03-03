@@ -1,6 +1,5 @@
 #!/usr/bin/perl -w
 my $dir="C:/report";
-my @arr=();
 opendir(DH,"$dir") or die "cannot open dir $dir\n";
 for my $file(readdir DH)
 {
@@ -14,7 +13,7 @@ for my $file(readdir DH)
       next if $subfile=~/pre/;
       next if $subfile=~/\_/;
       my ($sym)=($subfile=~/^(\w+)\./);
-      @arr=(@arr,&readfile("$dir/$file/cta1/$subfile",$sym))    
+      &readfile("$dir/$file/cta1/$subfile",$sym);    
 	}
 }
 print join"",@arr;
@@ -31,5 +30,6 @@ sub readfile(@)
 		push @re,"$sym,$_";
 	}
 	close IN;
-	return @re;
+	print join"",@re;
+	return;
 }
