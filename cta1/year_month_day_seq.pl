@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-opendir(DH,"./nd1") or die "cannot open dir ./nd\n";
+opendir(DH,"./new") or die "cannot open dir ./new\n";
 for my $file(readdir DH)
 {
 	next unless $file=~/csv/;
@@ -12,8 +12,8 @@ for my $file(readdir DH)
 sub fixfile(@)
 {
 	my $f=shift @_;
-	my $fi="./nd1/$f";
-	my $fo="./tick/$f";
+	my $fi="./new/$f";
+	my $fo="./format/$f";
 	return if -s $fo;
 	return unless -s $fi;
 	open(IN ,"$fi") or die "cannot open file $fi\n";

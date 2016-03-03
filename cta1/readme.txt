@@ -29,9 +29,8 @@
   cta1_post可用
   mainctr 生成 基于hbtick
 
-
-  merge
-  yearmonthday
+  yearmonthday   new to format
+  merge          format tick to merge
   split_tick
   gen_mainctr
   daily_driver.pl

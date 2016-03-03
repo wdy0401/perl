@@ -455,7 +455,8 @@ sub need_fix_tail()
 	}
 	else
 	{
-		return 0 if $h>=15;
+    return 1;
+		#return 0 if $h>=15;
 	}
 	return 1;
 }

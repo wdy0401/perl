@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
 
-opendir(DH,"./000") or die "cannot open dir ./nd\n";
+opendir(DH,"./tick") or die "cannot open dir ./tick\n";
 for my $file(readdir DH)
 {
 	next unless $file=~/csv/;
 	print"$file\n";
-	&merge("./nd/$file","./000/$file","./nd1/$file")
+	&merge("./tick/$file","./format/$file","./merge/$file")
 }
 
 sub merge(@)
@@ -34,9 +34,10 @@ sub readfile(@)
 	while(<IN>)
 	{		
 		my @a=(split/,/);
-		$a[0]="$a[0] 0:00" if $a[0]!~/\s/ and $a[0]!~/date/;
+		#$a[0]="$a[0] 0:00" if $a[0]!~/\s/ and $a[0]!~/date/;
 		my $l=join",",@a;
-		push @re,$l;
+		push @re,$l if @a>1;
+		print"$l" if @a==1;
 	}
 	close IN;
 	return @re;
@@ -48,5 +49,12 @@ sub getcount(@)
 	my $t=(split/,/,$line)[0];
 	#11/17/2014 9:09
 	my($m,$d,$y,$h,$min)=($line=~/(\d+)\/(\d+)\/(\d+)\s+(\d+)\:(\d+)/);
+	if(! defined $min)
+	{
+#		print"ERROR\t$line\n";
+		my($d,$h,$m)=($line=~/(\d+),(\d+)\:(\d+)/);
+#		print"($d*100+$h)*100+$m\n";
+		return ($d*100+$h)*100+$m;
+	}
 	return (((($y*100+$m)*100+$d)*100+$h)*100)+$min;
 }
