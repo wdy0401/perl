@@ -12,7 +12,7 @@ use WMATH;
 use WDATE;
 my $sym="cu";
 my $date=20151228;
-my $length_limit=500;
+my $length_limit=1000;
 
 GetOptions(
 	"sym=s" 	=>	\$sym,

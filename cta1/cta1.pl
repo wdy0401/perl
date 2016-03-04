@@ -17,12 +17,15 @@ my $tickfile;
 my $tick_type="2015_tick";#tr_tick
 my $today_begin=0;
 my $bar_minute=15;
+my $lon_daily=0;
+my $is_tail=0;
 GetOptions(
-	"date=s"	  	=>	\$date,
+	"date=s"	  		=>	\$date,
 	"ctr=s" 			=>	\$ctr,
-	"logfile=s" 	=>	\$logfile,
-	"tickfile=s" 	=>	\$tickfile,
-	"tick_type=s" =>  \$tick_type,
+	"logfile=s" 		=>	\$logfile,
+	"tickfile=s" 		=>	\$tickfile,
+	"lon_daily=s" 	=> 	\$lon_daily,
+	"tick_type=s" 	=>	\$tick_type,
 	"bar_minute=s"=>	\$bar_minute,
 ); 
 
@@ -267,49 +270,61 @@ sub cal_lon()
 {
 	return 0 if $barcount==0;
 	return 0 unless $barcount>2; #计算vid需求
-	my $lc=$bar{$barcount-1}{'c'};
-	my $vid;
-	if(			
-			(
-				abs($bar{$barcount-1}{'h'}	+	$bar{$barcount-2}{'h'})
-			+	abs($bar{$barcount-1}{'h'}	-	$bar{$barcount-2}{'h'})
-			-	abs($bar{$barcount-1}{'l'}		+	$bar{$barcount-2}{'l'})
-			+	abs($bar{$barcount-1}{'l'}		-	$bar{$barcount-2}{'l'})
-			)==0
-		)
-		{
-			$vid=0;
-		}
-		else
-		{
-			$vid=($bar{$barcount-1}{'v'}+$bar{$barcount-2}{'v'})/
-			(
+	if(! $lon_daily)
+	{
+		my $lc=$bar{$barcount-1}{'c'};
+		my $vid;
+		if(			
 				(
 					abs($bar{$barcount-1}{'h'}	+	$bar{$barcount-2}{'h'})
 				+	abs($bar{$barcount-1}{'h'}	-	$bar{$barcount-2}{'h'})
 				-	abs($bar{$barcount-1}{'l'}		+	$bar{$barcount-2}{'l'})
 				+	abs($bar{$barcount-1}{'l'}		-	$bar{$barcount-2}{'l'})
-				)
-			*50
-			);
+				)==0
+			)
+			{
+				$vid=0;
+			}
+			else
+			{
+				$vid=($bar{$barcount-1}{'v'}+$bar{$barcount-2}{'v'})/
+				(
+					(
+						abs($bar{$barcount-1}{'h'}	+	$bar{$barcount-2}{'h'})
+					+	abs($bar{$barcount-1}{'h'}	-	$bar{$barcount-2}{'h'})
+					-	abs($bar{$barcount-1}{'l'}		+	$bar{$barcount-2}{'l'})
+					+	abs($bar{$barcount-1}{'l'}		-	$bar{$barcount-2}{'l'})
+					)
+				*50
+				);
+			}
+		my $rc=($bar{$barcount}{'c'}-$lc)*$vid;
+		my $long=$rc;
+		
+		$bar{$barcount}{'lc'}=$lc;
+		$bar{$barcount}{'vid'}=$vid;
+		$bar{$barcount}{'rc'}=$rc;
+		$bar{$barcount}{'long'}=$long;
+		
+		return 0 unless $barcount>22; #计算dea需求
+		my $diff=&cal_diff(10);
+		my $dea=&cal_diff(20);
+		my $lon=$diff-$dea;	
+
+
+		$bar{$barcount}{'diff'}=$diff;
+		$bar{$barcount}{'dea'}=$dea;
+		$bar{$barcount}{'lon'}=$lon;
+	}
+	else
+	{
+		if($is_tail)
+		{
 		}
-	my $rc=($bar{$barcount}{'c'}-$lc)*$vid;
-	my $long=$rc;
-	
-	$bar{$barcount}{'lc'}=$lc;
-	$bar{$barcount}{'vid'}=$vid;
-	$bar{$barcount}{'rc'}=$rc;
-	$bar{$barcount}{'long'}=$long;
-	
-	return 0 unless $barcount>22; #计算dea需求
-	my $diff=&cal_diff(10);
-	my $dea=&cal_diff(20);
-	my $lon=$diff-$dea;	
-
-
-	$bar{$barcount}{'diff'}=$diff;
-	$bar{$barcount}{'dea'}=$dea;
-	$bar{$barcount}{'lon'}=$lon;
+		else
+		{
+		}
+	}
 }
 sub cal_diff(@)
 {
@@ -433,6 +448,12 @@ sub on_tail()
 		&check_pos();
 		&print_log();
 	}
+	if($lon_daily)
+	{
+		$is_tail=1;
+		&check_pos();
+		&print_log();
+	}
 	close OUT_LOG;
 }
 sub need_fix_tail()
@@ -491,3 +512,13 @@ sub morning_break(@)
 		}
 	}
 }
+__DATA__
+20160304 
+对于lon线使用日线数据 
+问题在于在此系统内无法以日为单位读取数据
+	当日数据可以解决
+	t-1日数据已然无法得到其 o h l
+	t-2日数据 完全不可得到
+		pre里有相应数据 可以得到
+对于lon数据的使用  可以通过在当日的每一次调用均使用前次数据来实现
+对于lon数据的生成  在on_tail生成  并加入到print中
