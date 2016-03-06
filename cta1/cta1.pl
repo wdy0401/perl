@@ -9,6 +9,7 @@ use 5.22.0;
 
 use lib "c:/code";
 use WMATH;
+use WDATE;
 
 my $ctr="cu1601";
 my $date=20151228;
@@ -42,12 +43,12 @@ my ($sym)=($ctr=~/^(\D+)/);
 
 sub init()
 {
-	$SIG{'INT'}='on_close';
+	$SIG{'INT'}='on_ctrl_c';
 	$|=1;
-	# 这三个都不解决taskkill的问题 taskkill时并不出发on_close
-	# $SIG{'STOP'}='on_close';
-	# $SIG{'KILL'}='on_close';
-	# $SIG{'QUIT'}='on_close';
+	# 这三个都不解决taskkill的问题 taskkill时并不出发on_ctrl_c
+	# $SIG{'STOP'}='on_ctrl_c';
+	# $SIG{'KILL'}='on_ctrl_c';
+	# $SIG{'QUIT'}='on_ctrl_c';
 	$logfile//=strftime("c:/report/$date/cta1/${sym}_%Y%m%d_%H_%M_%S",localtime()).".txt";
 	mkpath "c:/report/$date/cta1" unless -d "c:/report/$date/cta1";
 	open(OUT_LOG,">$logfile")or die "Cannot open prelog file $logfile\n";
@@ -318,24 +319,188 @@ sub cal_lon()
 	}
 	else
 	{
-		if($is_tail)
+		if($is_tail and &check_day_length())
 		{
+			my $lc=&find_day_value(0,'c');
+			my $vid;
+			if(			
+					(
+						abs(&find_day_value(-1,'h')	+	&find_day_value(-2,'h')	)
+					+	abs(&find_day_value(-1,'h')	-	&find_day_value(-2,'h')	)
+					-	abs(&find_day_value(-1,'l')		+	&find_day_value(-2,'l'))
+					+	abs(&find_day_value(-1,'l')		-	&find_day_value(-2,'l'))
+					)==0
+				)
+				{
+					$vid=0;
+				}
+				else
+				{
+					$vid=(&find_day_value(-1,'v')+&find_day_value(-2,'v'))/
+					(
+						(
+							abs(&find_day_value(-1,'h')	+	&find_day_value(-2,'h')	)
+						+	abs(&find_day_value(-1,'h')	-	&find_day_value(-2,'h')	)
+						-	abs(&find_day_value(-1,'l')		+	&find_day_value(-2,'l'))
+						+	abs(&find_day_value(-1,'l')		-	&find_day_value(-2,'l'))
+						)
+					*50
+					);
+				}
+			my $rc=(&find_day_value(0,'c')-$lc)*$vid;
+			my $long=$rc;
+			
+			$bar{$barcount}{'lc'}=$lc;
+			$bar{$barcount}{'vid'}=$vid;
+			$bar{$barcount}{'rc'}=$rc;
+			$bar{$barcount}{'long'}=$long;
+			
+			return 0 unless $barcount>22; #计算dea需求
+			my $diff=&cal_diff(10);
+			my $dea=&cal_diff(20);
+			my $lon=$diff-$dea;	
+
+
+			$bar{$barcount}{'diff'}=$diff;
+			$bar{$barcount}{'dea'}=$dea;
+			$bar{$barcount}{'lon'}=$lon;
 		}
 		else
 		{
+			if(!defined $bar{$barcount-1}{'c'})
+			{
+				$bar{$barcount}{'lc'}=0;
+				$bar{$barcount}{'vid'}=0;
+				$bar{$barcount}{'rc'}=0;
+				$bar{$barcount}{'long'}=0;
+				$bar{$barcount}{'diff'}=0;
+				$bar{$barcount}{'dea'}=0;
+				$bar{$barcount}{'lon'}=0;
+			}
+			else
+			{
+				$bar{$barcount}{'lc'}			=$bar{$barcount-1}{'lc'};
+				$bar{$barcount}{'vid'}		=$bar{$barcount-1}{'vid'};
+				$bar{$barcount}{'rc'}			=$bar{$barcount-1}{'rc'};
+				$bar{$barcount}{'long'}		=$bar{$barcount-1}{'long'};
+				$bar{$barcount}{'diff'}		=$bar{$barcount-1}{'diff'};
+				$bar{$barcount}{'dea'}		=$bar{$barcount}{'dea'};
+				$bar{$barcount}{'lon'}		=$bar{$barcount-1}{'lon'};	
+			}
 		}
 	}
 }
+sub find_day_value(@)
+{
+	my ($length,$type)=@_;
+	my $fdate=&findpretradingday($length) if $length>0;
+	$fdate=$date if $length==0;;
+	if(lc $type eq 'c')
+	{
+		for my $barcount(reverse sort{$a<=>$b} keys %bar)
+		{
+			my ($date)=($bar{$barcount}{'t'}=~/(\d{8})/);
+			next if $date == $fdate;
+			return $bar{$barcount}{'c'} if $date ==$fdate;
+		}
+	}
+	elsif(lc $type eq 'h')
+	{
+		my $re;
+		for my $barcount(reverse sort{$a<=>$b} keys %bar)
+		{
+			my ($date)=($bar{$barcount}{'t'}=~/(\d{8})/);
+			next if $date == $fdate;
+			$re//=$bar{$barcount}{'h'};
+			$re=$bar{$barcount}{'h'} if $re<$bar{$barcount}{'h'};
+		}
+		$re//=0;
+		return $re;
+	}
+	elsif(lc $type eq 'l')
+	{	
+		my $re;
+		for my $barcount(reverse sort{$a<=>$b} keys %bar)
+		{
+			my ($date)=($bar{$barcount}{'t'}=~/(\d{8})/);
+			next if $date == $fdate;
+			$re//=$bar{$barcount}{'l'};
+			$re=$bar{$barcount}{'l'} if $re>$bar{$barcount}{'l'};
+		}
+		$re//=0;
+		return $re;
+	}
+	elsif(lc $type eq 'v')
+	{		
+		my $re=0;
+		for my $barcount(reverse sort{$a<=>$b} keys %bar)
+		{
+			my ($date)=($bar{$barcount}{'t'}=~/(\d{8})/);
+			next if $date == $fdate;
+			$re+=$bar{$barcount}{'v'};
+		}
+		$re//=0;
+		return $re;
+	}
+	elsif(lc $type eq 'long')
+	{		
+		my $re=0;
+		for my $barcount(reverse sort{$a<=>$b} keys %bar)
+		{
+			my ($date)=($bar{$barcount}{'t'}=~/(\d{8})/);
+			next if $date == $fdate;
+			$re=$bar{$barcount}{'long'};
+		}
+		$re//=0;
+		return $re;
+	}
+	else
+	{
+		return 0;
+	}
+}
+sub check_day_length()
+{
+	state $counter=0;
+	state $date_low_limit=30;
+	return 1 if($counter>=$date_low_limit);
+	my %date_use;
+	for my $barcount(sort keys %bar)
+	{
+		next unless defined $bar{$barcount}{'t'};
+		my $nt=$bar{$barcount}{'t'};
+		$nt="$nt:$date" if $bar{$barcount}{'t'}!~/(\d{8})/;
+		my ($date)=($nt=~/(\d{8})/);
+		$date_use{$date}=1;
+	}
+	$counter=scalar (keys %date_use);
+	return 1 if($counter>=$date_low_limit);
+	return 0;
+}
 sub cal_diff(@)
 {
-	my $count=shift @_;
-	my $ret=0;
-	for my $n(0..$count-1)
+	if(! $lon_daily)
 	{
-		$ret+=$bar{$barcount-$n}{'long'};
+		my $count=shift @_;
+		my $ret=0;
+		for my $n(0..$count-1)
+		{
+			$ret+=$bar{$barcount-$n}{'long'};
+		}
+		return 0 unless $count;
+		return $ret/$count;
 	}
-	return 0 unless $count;
-	return $ret/$count;
+	else
+	{		
+		my $count=shift @_;
+		my $ret=0;
+		for my $n(0..$count-1)
+		{
+			$ret+=&find_day_value(-1*$n,'long')
+		}
+		return 0 unless $count;
+		return $ret/$count;
+	}
 }
 sub cal_dkx()
 {
@@ -434,7 +599,7 @@ sub print_log()
 	
 	print OUT_LOG "$date:$t,$o,$h,$l,$c,$i,$v,$lon,$dkx,$lc,$vid,$rc,$long,$diff,$dea,$a,$dkx_b,$dkx_d,$nowdkx\n";
 }
-sub on_close()
+sub on_ctrl_c()
 {
 	&check_pos();
 	&print_log();
@@ -522,3 +687,7 @@ __DATA__
 		pre里有相应数据 可以得到
 对于lon数据的使用  可以通过在当日的每一次调用均使用前次数据来实现
 对于lon数据的生成  在on_tail生成  并加入到print中
+
+20160305
+dkx一直为0 原因未知
+新算出的lon一直未0 原因未知

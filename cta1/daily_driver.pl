@@ -15,7 +15,7 @@ while(<IN>)
 	my ($sym,$dt,$ctr)=(split);
 	next unless $sym ~~ @syms;
 	print"$sym\t$dt\t$ctr\n";
-	system("perl cta1.pl -date $dt -tick_type tr_tick -ctr $ctr -bar_minute $bar_minute -logfile c:/report/$dt/cta1/$sym.txt -tickfile ./split_tick/$dt/$ctr.csv");
+	system("perl cta1.pl -date $dt -tick_type tr_tick -ctr $ctr -bar_minute $bar_minute -logfile c:/report/$dt/cta1/$sym.txt -tickfile ./split_tick/$dt/$ctr.csv -lon_daily 1");
 	system("perl cta1_post.pl -date $dt -sym $sym");
 }
 close IN;
