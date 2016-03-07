@@ -9,7 +9,7 @@ use 5.22.0;
 
 use lib "c:/code";
 use WMATH;
-use WDATE;
+use WDATE;WDATE->new();
 
 my $ctr="cu1601";
 my $date=20151228;
