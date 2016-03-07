@@ -66,7 +66,7 @@ sub load_cta1(@)
 	{
 		s/\s+$//;
 		next unless $_;	
-		my($t,$o,$h,$l,$c,$v,$i,$lon,$dkx,$lc,$vid,$rc,$long,$diff,$dea,$a,$dkx_b,$dkx_d,$nowdkx)=(split/,/);
+		my($t,$o,$h,$l,$c,$i,$v,$lon,$dkx,$lc,$vid,$rc,$long,$diff,$dea,$a,$dkx_b,$dkx_d,$nowdkx)=(split/,/);
 		$barcount++;
 		$bar{$barcount}{'t'}=$t;
 		$bar{$barcount}{'o'}=$o;
@@ -89,6 +89,7 @@ sub load_cta1(@)
 		$bar{$barcount}{'dkx_b'}=$dkx_b;
 		$bar{$barcount}{'dkx_d'}=$dkx_d;
 		$bar{$barcount}{'nowdkx'}=$nowdkx;
+		#say"READ $barcount $lc";
 	}
 }
 sub run()
@@ -143,6 +144,7 @@ sub run()
 		{
 			$bar{$barcount}{'v'}//=0;
 			$bar{$barcount}{'v'}+=$v;
+			#say "ERR $barcount $v";
 		}
 	}
 	close IN;
@@ -321,7 +323,7 @@ sub cal_lon()
 	{
 		if($is_tail and &check_day_length())
 		{
-			my $lc=&find_day_value(0,'c');
+			my $lc=&find_day_value(-1,'c');
 			my $vid;
 			if(			
 					(
@@ -354,13 +356,13 @@ sub cal_lon()
 			$bar{$barcount}{'vid'}=$vid;
 			$bar{$barcount}{'rc'}=$rc;
 			$bar{$barcount}{'long'}=$long;
-			
+			#say "$lc $vid $rc $long";
 			return 0 unless $barcount>22; #计算dea需求
 			my $diff=&cal_diff(10);
 			my $dea=&cal_diff(20);
 			my $lon=$diff-$dea;	
 
-
+			#say"$diff $dea $lon";
 			$bar{$barcount}{'diff'}=$diff;
 			$bar{$barcount}{'dea'}=$dea;
 			$bar{$barcount}{'lon'}=$lon;
@@ -369,23 +371,27 @@ sub cal_lon()
 		{
 			if(!defined $bar{$barcount-1}{'c'})
 			{
-				$bar{$barcount}{'lc'}=0;
-				$bar{$barcount}{'vid'}=0;
-				$bar{$barcount}{'rc'}=0;
-				$bar{$barcount}{'long'}=0;
-				$bar{$barcount}{'diff'}=0;
-				$bar{$barcount}{'dea'}=0;
-				$bar{$barcount}{'lon'}=0;
+				$bar{$barcount}{'lc'}//=0;
+				$bar{$barcount}{'vid'}//=0;
+				$bar{$barcount}{'rc'}//=0;
+				$bar{$barcount}{'long'}//=0;
+				$bar{$barcount}{'diff'}//=0;
+				$bar{$barcount}{'dea'}//=0;
+				$bar{$barcount}{'lon'}//=0;
 			}
 			else
 			{
-				$bar{$barcount}{'lc'}			=$bar{$barcount-1}{'lc'};
-				$bar{$barcount}{'vid'}		=$bar{$barcount-1}{'vid'};
-				$bar{$barcount}{'rc'}			=$bar{$barcount-1}{'rc'};
-				$bar{$barcount}{'long'}		=$bar{$barcount-1}{'long'};
-				$bar{$barcount}{'diff'}		=$bar{$barcount-1}{'diff'};
-				$bar{$barcount}{'dea'}		=$bar{$barcount}{'dea'};
-				$bar{$barcount}{'lon'}		=$bar{$barcount-1}{'lon'};	
+				$bar{$barcount}{'lc'}			//=$bar{$barcount-1}{'lc'};
+				$bar{$barcount}{'vid'}		//=$bar{$barcount-1}{'vid'};
+				$bar{$barcount}{'rc'}			//=$bar{$barcount-1}{'rc'};
+				$bar{$barcount}{'long'}		//=$bar{$barcount-1}{'long'};
+				$bar{$barcount}{'diff'}		//=$bar{$barcount-1}{'diff'};
+				$bar{$barcount}{'dea'}		//=$bar{$barcount}{'dea'};
+				$bar{$barcount}{'lon'}		//=$bar{$barcount-1}{'lon'};	
+				# say "DEFINED LC 1 $barcount $bar{$barcount-1}{'lc'}";	
+				# say "DEFINED vid 1 $barcount $bar{$barcount-1}{'vid'}";
+				# say "DEFINED LC 2 $barcount $bar{$barcount-2}{'lc'}";	
+				# say "DEFINED vid 2 $barcount $bar{$barcount-2}{'vid'}";	
 			}
 		}
 	}
@@ -393,15 +399,24 @@ sub cal_lon()
 sub find_day_value(@)
 {
 	my ($length,$type)=@_;
-	my $fdate=&findpretradingday($length) if $length>0;
+	my $fdate=&findpretradingday($date,abs($length)) if abs($length)>0;
+	#say "$length $type $fdate";
 	$fdate=$date if $length==0;;
 	if(lc $type eq 'c')
 	{
 		for my $barcount(reverse sort{$a<=>$b} keys %bar)
 		{
-			my ($date)=($bar{$barcount}{'t'}=~/(\d{8})/);
-			next if $date == $fdate;
-			return $bar{$barcount}{'c'} if $date ==$fdate;
+			my $cdate;
+			if($bar{$barcount}{'t'}=~/(\d{8})/)
+			{
+				$cdate=$1;
+			}
+			else
+			{
+				$cdate=$date;
+			}
+			next unless $cdate == $fdate;
+			return $bar{$barcount}{'c'} if $cdate ==$fdate;
 		}
 	}
 	elsif(lc $type eq 'h')
@@ -409,8 +424,16 @@ sub find_day_value(@)
 		my $re;
 		for my $barcount(reverse sort{$a<=>$b} keys %bar)
 		{
-			my ($date)=($bar{$barcount}{'t'}=~/(\d{8})/);
-			next if $date == $fdate;
+			my $cdate;
+			if($bar{$barcount}{'t'}=~/(\d{8})/)
+			{
+				$cdate=$1;
+			}
+			else
+			{
+				$cdate=$date;
+			}
+			next unless $cdate == $fdate;
 			$re//=$bar{$barcount}{'h'};
 			$re=$bar{$barcount}{'h'} if $re<$bar{$barcount}{'h'};
 		}
@@ -422,8 +445,16 @@ sub find_day_value(@)
 		my $re;
 		for my $barcount(reverse sort{$a<=>$b} keys %bar)
 		{
-			my ($date)=($bar{$barcount}{'t'}=~/(\d{8})/);
-			next if $date == $fdate;
+			my $cdate;
+			if($bar{$barcount}{'t'}=~/(\d{8})/)
+			{
+				$cdate=$1;
+			}
+			else
+			{
+				$cdate=$date;
+			}
+			next unless $cdate == $fdate;
 			$re//=$bar{$barcount}{'l'};
 			$re=$bar{$barcount}{'l'} if $re>$bar{$barcount}{'l'};
 		}
@@ -435,21 +466,39 @@ sub find_day_value(@)
 		my $re=0;
 		for my $barcount(reverse sort{$a<=>$b} keys %bar)
 		{
-			my ($date)=($bar{$barcount}{'t'}=~/(\d{8})/);
-			next if $date == $fdate;
+			my $cdate;
+			if($bar{$barcount}{'t'}=~/(\d{8})/)
+			{
+				$cdate=$1;
+			}
+			else
+			{
+				$cdate=$date;
+			}
+			next unless $cdate == $fdate;
 			$re+=$bar{$barcount}{'v'};
+			#say "$barcount   $bar{$barcount}{'i'} $bar{$barcount}{'v'} ";
 		}
 		$re//=0;
 		return $re;
 	}
 	elsif(lc $type eq 'long')
 	{		
-		my $re=0;
+		my $re;
 		for my $barcount(reverse sort{$a<=>$b} keys %bar)
 		{
-			my ($date)=($bar{$barcount}{'t'}=~/(\d{8})/);
-			next if $date == $fdate;
-			$re=$bar{$barcount}{'long'};
+			my $cdate;
+#			say "BC BCT $barcount $bar{$barcount}{'t'}";
+			if($bar{$barcount}{'t'}=~/(\d{8})/)
+			{
+				$cdate=$1;
+			}
+			else
+			{
+				$cdate=$date;
+			}
+			next if $cdate == $fdate;
+			$re//=$bar{$barcount}{'long'};
 		}
 		$re//=0;
 		return $re;
@@ -462,7 +511,7 @@ sub find_day_value(@)
 sub check_day_length()
 {
 	state $counter=0;
-	state $date_low_limit=30;
+	state $date_low_limit=20;
 	return 1 if($counter>=$date_low_limit);
 	my %date_use;
 	for my $barcount(sort keys %bar)
@@ -475,6 +524,7 @@ sub check_day_length()
 	}
 	$counter=scalar (keys %date_use);
 	return 1 if($counter>=$date_low_limit);
+#	print  join"\n",(sort keys %date_use);print"\n";
 	return 0;
 }
 sub cal_diff(@)
@@ -515,6 +565,7 @@ sub cal_dkx()
 	# 当B上穿D时为买入信号；
 	# 当B下穿D时为卖出信号；
 	return 0 if $barcount==0;
+	return 0 unless defined  $bar{$barcount}{'o'};
 	my $a=($bar{$barcount}{'o'}+$bar{$barcount}{'h'}+$bar{$barcount}{'l'}+3*$bar{$barcount}{'c'})/6;
 	$bar{$barcount}{'a'}=$a;
 	
@@ -564,6 +615,7 @@ sub cal_dkx()
 			$bar{$barcount}{'dkx'}=0;
 		}	
 	}
+#	say "$bar{$barcount-1}{'nowdkx'} $bar{$barcount}{'nowdkx'} $bar{$barcount}{'dkx'}";
 	return $bar{$barcount}{'dkx'};
 }
 sub print_log()
@@ -691,3 +743,6 @@ __DATA__
 20160305
 dkx一直为0 原因未知
 新算出的lon一直未0 原因未知
+
+20160307
+lon 已经非零
