@@ -422,6 +422,7 @@ sub find_day_value(@)
 	elsif(lc $type eq 'h')
 	{
 		my $re;
+		my $getit=0;
 		for my $barcount(reverse sort{$a<=>$b} keys %bar)
 		{
 			my $cdate;
@@ -433,9 +434,16 @@ sub find_day_value(@)
 			{
 				$cdate=$date;
 			}
-			next unless $cdate == $fdate;
-			$re//=$bar{$barcount}{'h'};
-			$re=$bar{$barcount}{'h'} if $re<$bar{$barcount}{'h'};
+			if($cdate == $fdate)
+			{
+				$re//=$bar{$barcount}{'h'};
+				$re=$bar{$barcount}{'h'} if $re<$bar{$barcount}{'h'};
+				$getit=1;
+			}
+			else
+			{
+				last if $getit;
+			}			
 		}
 		$re//=0;
 		return $re;
@@ -443,6 +451,7 @@ sub find_day_value(@)
 	elsif(lc $type eq 'l')
 	{	
 		my $re;
+		my $getit=0;
 		for my $barcount(reverse sort{$a<=>$b} keys %bar)
 		{
 			my $cdate;
@@ -454,9 +463,16 @@ sub find_day_value(@)
 			{
 				$cdate=$date;
 			}
-			next unless $cdate == $fdate;
-			$re//=$bar{$barcount}{'l'};
-			$re=$bar{$barcount}{'l'} if $re>$bar{$barcount}{'l'};
+			if($cdate == $fdate)
+			{
+				$re//=$bar{$barcount}{'l'};
+				$re=$bar{$barcount}{'l'} if $re>$bar{$barcount}{'l'};
+				$getit=1;
+			}
+			else
+			{
+				last if $getit;
+			}	
 		}
 		$re//=0;
 		return $re;
@@ -464,6 +480,7 @@ sub find_day_value(@)
 	elsif(lc $type eq 'v')
 	{		
 		my $re=0;
+		my $getit=0;
 		for my $barcount(reverse sort{$a<=>$b} keys %bar)
 		{
 			my $cdate;
@@ -475,9 +492,15 @@ sub find_day_value(@)
 			{
 				$cdate=$date;
 			}
-			next unless $cdate == $fdate;
-			$re+=$bar{$barcount}{'v'};
-			#say "$barcount   $bar{$barcount}{'i'} $bar{$barcount}{'v'} ";
+			if($cdate == $fdate)
+			{
+				$re+=$bar{$barcount}{'v'};
+				$getit=1;
+			}
+			else
+			{
+				last if $getit;
+			}	
 		}
 		$re//=0;
 		return $re;
@@ -488,7 +511,6 @@ sub find_day_value(@)
 		for my $barcount(reverse sort{$a<=>$b} keys %bar)
 		{
 			my $cdate;
-#			say "BC BCT $barcount $bar{$barcount}{'t'}";
 			if($bar{$barcount}{'t'}=~/(\d{8})/)
 			{
 				$cdate=$1;
@@ -497,8 +519,11 @@ sub find_day_value(@)
 			{
 				$cdate=$date;
 			}
-			next if $cdate == $fdate;
-			$re//=$bar{$barcount}{'long'};
+			if($cdate == $fdate)
+			{
+				$re//=$bar{$barcount}{'long'};
+				last;
+			}
 		}
 		$re//=0;
 		return $re;

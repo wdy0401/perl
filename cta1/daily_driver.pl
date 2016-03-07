@@ -1,5 +1,6 @@
 #!/usr/bin/perl -w
 use 5.22.0;
+use experimental 'smartmatch';
 use Getopt::Long;
 my $bar_minute=15;
 GetOptions(
