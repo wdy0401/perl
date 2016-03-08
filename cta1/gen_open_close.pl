@@ -1,22 +1,27 @@
 #!/usr/bin/perl -w
 use Getopt::Long;
 my $bar_minute;
-my $zero_position=1;
+my $with_zero_position=1;
+my $keep_dkx=0;
+my $fi;
 GetOptions(
 	"bar_minute=s" 	=>	\$bar_minute,
-	"zero_position=s"=>	\$zero_position,
+	"with_zero_position=s"=>	\$with_zero_position,
+	"keep_dkx=s"=>\$keep_dkx,
+  "ind_file=s"=>\$fi,
 ); 
+$fi//="./ind_$bar_minute.txt";
 my %mctr;
 my %sym_pos;
 my %sym_lastp;
 my %sym_lastctr;
 my %sym_lastt;
+my %sym_lastdkx;
 &load_mainctr();
 &cal_return();
 
 sub cal_return()
 {
-	my $fi="./ind_$bar_minute.txt";
 	open(IN ,"$fi") or die "cannot open file $fi\n";
 	while(<IN>)
 	{		
@@ -25,8 +30,20 @@ sub cal_return()
 		my $nowctr=$mctr{$sym}{$dt};
 		$sym_lastctr{$sym}//=$nowctr;
 		$sym_pos{$sym}//=0;
+		if($keep_dkx)
+		{
+      $sym_lastdkx{$sym}//=$dkx;
+      if($dkx!=0)
+      {
+        $sym_lastdkx{$sym}=$dkx;
+      }
+      else
+      {
+        $dkx=$sym_lastdkx{$sym};
+      }
+		}
 		
-		if ($sym_lastctr{$sym} ne $nowctr)
+		if ($sym_lastctr{$sym} ne $nowctr)#roll contract
 		{
 			print "$sym_lastctr{$sym},$sym_lastt{$sym},$sym_lastp{$sym},0\n";
 			print "$nowctr,$t,$lp,$sym_pos{$sym}\n";
@@ -39,11 +56,11 @@ sub cal_return()
 		{
 			$sym_pos{$sym}=-1;
 		}
-		elsif(($lon<0 and $sym_pos{$sym}>0) and $zero_position)
+		elsif(($lon<0 and $sym_pos{$sym}>0) and $with_zero_position)
 		{
 			$sym_pos{$sym}=0;
 		}
-		elsif(($lon>0 and $sym_pos{$sym}<0) and $zero_position)
+		elsif(($lon>0 and $sym_pos{$sym}<0) and $with_zero_position)
 		{
 			$sym_pos{$sym}=0;
 		}

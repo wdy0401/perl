@@ -1,6 +1,7 @@
 #
 my $cmd="";
-for my $bar_minute(7,10,15,19,23)
+#for my $bar_minute(7,10,15,19,23)
+for my $bar_minute(15)
 {
 	$cmd="perl daily_driver.pl -bar_minute $bar_minute";
 	print "$cmd\n";

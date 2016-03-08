@@ -77,3 +77,9 @@ cta1/net_value*.txt
 cta1/cta1.7z
 cta1/result/*.*
 *.7z
+cta1/ana_day/
+cta1/ana_15min/
+cta1/result_day/
+cta1/result_15min/net_value_ta_15.txt
+cta1/result_15min/
+cta1/15min.zip

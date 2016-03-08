@@ -1,12 +1,17 @@
 #!/usr/bin/perl -w
 use Getopt::Long;
+use File::Path;
 my $bar_minute;
+my $infile;
+my $outdir="";
 GetOptions(
 	"bar_minute=s" 	=>	\$bar_minute,
+	"infile=s" =>\$infile,
+	"outdir=s" =>\$outdir,
 ); 
+$infile//="./open_close_$bar_minute.txt";
 my %dh;
-my $f="./open_close_$bar_minute.txt";
-open(IN,"$f") or die "Cannot open file $f\n";
+open(IN,"$infile") or die "Cannot open file $infile\n";
 while(<IN>)
 {
   s/\s+$//;
@@ -28,7 +33,10 @@ for my $sym(keys %dh)
   my $pos=0;
   my $lastp;
   my $base;
-  open(OUT , ">net_value_${sym}_${bar_minute}.txt");
+  mkpath $outdir if $outdir;
+  my $outfile="./${outdir}/net_value_${sym}_${bar_minute}.txt" if $outdir;
+  $outfile="./net_value_${sym}_${bar_minute}.txt" unless $outdir;
+  open(OUT , "> $outfile");
   for(@{$dh{$sym}})
   {
     my ($sym,$ctr,$t,$p,$size)=(split/,/);
