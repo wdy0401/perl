@@ -1,8 +1,10 @@
 #!/usr/bin/perl -w
 use Getopt::Long;
 my $bar_minute;
+my $zero_position=1;
 GetOptions(
 	"bar_minute=s" 	=>	\$bar_minute,
+	"zero_position=s"=>	\$zero_position,
 ); 
 my %mctr;
 my %sym_pos;
@@ -36,6 +38,14 @@ sub cal_return()
 		elsif($lon<0 and $dkx<0)
 		{
 			$sym_pos{$sym}=-1;
+		}
+		elsif(($lon<0 and $sym_pos{$sym}>0) and $zero_position)
+		{
+			$sym_pos{$sym}=0;
+		}
+		elsif(($lon>0 and $sym_pos{$sym}<0) and $zero_position)
+		{
+			$sym_pos{$sym}=0;
 		}
 		
 		print "$nowctr,$t,$lp,$sym_pos{$sym}\n";
