@@ -17,7 +17,7 @@ while(<IN>)
 close IN;
 
 system("mkdir data") unless -d "./data";
-chdir "./tick";
+chdir "./merge";
 
 &drive_dir();
 &get_main();

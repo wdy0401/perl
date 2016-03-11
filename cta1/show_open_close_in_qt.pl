@@ -1,20 +1,33 @@
 #!/usr/bin/perl -w
 use Getopt::Long;
+use 5.22.0;
+use IO::Socket;
+use strict;
 my $bar_minute;
 my $with_zero_position=1;
 my $keep_dkx=0;
 my $fi;
+my $show_dt=20160104;
 GetOptions(
-	"bar_minute=s" 	=>	\$bar_minute,
-	"with_zero_position=s"=>	\$with_zero_position,
-	"keep_dkx=s"=>\$keep_dkx,
-	"ind_file=s"=>\$fi,
+	"ind_file=s"					=>\$fi,
+	"show_dt=s"				=>\$show_dt,
+	"keep_dkx=s"				=>\$keep_dkx,
+	"bar_minute=s" 			=>\$bar_minute,
+	"with_zero_position=s"=>\$with_zero_position,
 ); 
+
+my $sock = IO::Socket::INET->new(
+    Proto    => 'udp',
+    PeerPort => 32011,
+    PeerAddr => '127.0.0.1',
+) or die "Could not create socket: $!\n";
+
 $fi//="./ind_$bar_minute.txt";
 my %mctr;
 my %sym_pos;
 my %sym_lastp;
 my %sym_lastctr;
+my %sym_lastpos;
 my %sym_lastt;
 my %sym_lastdkx;
 &load_mainctr();
@@ -27,6 +40,9 @@ sub cal_return()
 	{		
 		my ($sym,$t,$lp,$lon,$dkx)=(split/,/)[0,1,5,8,9];
 		my($dt)=($t=~/(^\d{8})/);
+		next if $dt!=$show_dt;
+		next if $sym eq 'jm';
+		$t=~s/\d{8}\://;
 		my $nowctr=$mctr{$sym}{$dt};
 		$sym_lastctr{$sym}//=$nowctr;
 		$sym_pos{$sym}//=0;
@@ -46,6 +62,8 @@ sub cal_return()
 		{
 			print "$sym_lastctr{$sym},$sym_lastt{$sym},$sym_lastp{$sym},0\n";
 			print "$nowctr,$t,$lp,$sym_pos{$sym}\n";
+			$sock->send("$sym_lastctr{$sym}\n0\n$sym_lastt{$sym}\n$sym_lastp{$sym}");
+			$sock->send("$nowctr\n$sym_pos{$sym}\n$t\n$lp");
 		}
 		if($lon>0 and $dkx>0)
 		{
@@ -65,10 +83,14 @@ sub cal_return()
 		}
 		
 		print "$nowctr,$t,$lp,$sym_pos{$sym}\n";
+		$sock->send("$nowctr\n$sym_pos{$sym}\n$t\n$lp") if !defined $sym_lastpos{$sym} or $sym_lastpos{$sym}!=$sym_pos{$sym};
+		$sym_lastpos{$sym}=$sym_pos{$sym};
 		
 		$sym_lastp{$sym}=$lp;
 		$sym_lastctr{$sym}=$mctr{$sym}{$dt};
 		$sym_lastt{$sym}=$t;
+		
+		sleep 1;
 		
 		
 	}

@@ -1,11 +1,19 @@
 #!/usr/bin/perl -w
+use File::Copy;
 
 opendir(DH,"./tick") or die "cannot open dir ./tick\n";
 for my $file(readdir DH)
 {
 	next unless $file=~/csv/;
 	print"$file\n";
-	&merge("./tick/$file","./format/$file","./merge/$file")
+	if(-s "./format/$file")
+	{
+    &merge("./tick/$file","./format/$file","./merge/$file");
+	}
+	else
+	{
+    copy("./tick/$file","./merge/$file")
+	}
 }
 
 sub merge(@)

@@ -6,11 +6,11 @@ my $bar_minute=15;
 GetOptions(
 	"bar_minute=s"=>	\$bar_minute,
 ); 
-my $f="0214mainctr.txt";
+my $f="mainctr.txt";
 open(IN ,"$f") or die "cannot open file $f\n";
 my @re;
 my @syms=qw!cf j jm l p rb ta!;
-#my @syms=qw!rb!;
+#my @syms=qw!cu!;
 while(<IN>)
 {		
 	s/\s+$//;
